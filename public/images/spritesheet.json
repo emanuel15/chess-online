@@ -1,0 +1,255 @@
+{
+	"frames": {
+		"king_white": {
+			"frame": {
+				"x": 1,
+				"y": 1,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"queen_white": {
+			"frame": {
+				"x": 48,
+				"y": 1,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"bishop_white": {
+			"frame": {
+				"x": 95,
+				"y": 1,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"knight_white": {
+			"frame": {
+				"x": 1,
+				"y": 48,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"rook_white": {
+			"frame": {
+				"x": 48,
+				"y": 48,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"pawn_white": {
+			"frame": {
+				"x": 95,
+				"y": 48,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"king_black": {
+			"frame": {
+				"x": 1,
+				"y": 95,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"queen_black": {
+			"frame": {
+				"x": 48,
+				"y": 95,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"bishop_black": {
+			"frame": {
+				"x": 95,
+				"y": 95,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"knight_black": {
+			"frame": {
+				"x": 142,
+				"y": 1,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"rook_black": {
+			"frame": {
+				"x": 142,
+				"y": 48,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		},
+		"pawn_black": {
+			"frame": {
+				"x": 142,
+				"y": 95,
+				"w": 45,
+				"h": 45
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 45,
+				"h": 45
+			},
+			"sourceSize": {
+				"w": 45,
+				"h": 45
+			}
+		}
+	},
+	"meta": {
+		"app": "http://www.codeandweb.com/texturepacker",
+		"version": "1.0",
+		"image": "spritesheet.png",
+		"format": "RGBA8888",
+		"size": {
+			"w": 188,
+			"h": 141
+		},
+		"scale": "1"
+	}
+}
