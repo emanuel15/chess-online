@@ -103,7 +103,7 @@ export default class Board extends PIXI.Sprite {
     }
 
     createBoard(app: PIXI.Application) {
-        let sheet = app.loader.resources["images/spritesheet.json"].spritesheet;
+        let sheet = app.loader.resources["images/spritesheet.min.json"].spritesheet;
 
         this.spriteSheet = sheet;
 

@@ -1,11 +1,7 @@
 import { Colors, Player } from './player';
-import { translateFromPGNMove, DataStream, Events } from './shared';
+import { DataStream, Events } from './shared';
 import * as uuidv4 from 'uuid/v4';
 import Board from './board';
-
-// interface Board {
-//     cells: number[][];
-// }
 
 export default class Match {
 

@@ -23,7 +23,7 @@ let dataStream = new DataStream();
 let infoEl = document.querySelector('#info');
 
 function loadAssets() {
-    app.loader.add("images/spritesheet.json").load(() => {
+    app.loader.add("images/spritesheet.min.json").load(() => {
         board.createBoard(app);
         board.resetBoard(app);
         buildPromotionWindow();
@@ -33,10 +33,10 @@ function loadAssets() {
 
 function buildPromotionWindow() {
     promotionSprites = [
-        new PIXI.Sprite(app.loader.resources["images/spritesheet.json"].textures["queen_white"]),
-        new PIXI.Sprite(app.loader.resources["images/spritesheet.json"].textures["knight_white"]),
-        new PIXI.Sprite(app.loader.resources["images/spritesheet.json"].textures["bishop_white"]),
-        new PIXI.Sprite(app.loader.resources["images/spritesheet.json"].textures["rook_white"]),
+        new PIXI.Sprite(app.loader.resources["images/spritesheet.min.json"].textures["queen_white"]),
+        new PIXI.Sprite(app.loader.resources["images/spritesheet.min.json"].textures["knight_white"]),
+        new PIXI.Sprite(app.loader.resources["images/spritesheet.min.json"].textures["bishop_white"]),
+        new PIXI.Sprite(app.loader.resources["images/spritesheet.min.json"].textures["rook_white"]),
     ];
 
     promotionWindow = new PIXI.Graphics();
@@ -78,10 +78,10 @@ function hidePromotionWindow() {
 }
 
 function setPromotionColor(newColor: string) {
-    promotionSprites[0].texture = app.loader.resources["images/spritesheet.json"].textures[`queen_${newColor}`];
-    promotionSprites[1].texture = app.loader.resources["images/spritesheet.json"].textures[`knight_${newColor}`];
-    promotionSprites[2].texture = app.loader.resources["images/spritesheet.json"].textures[`bishop_${newColor}`];
-    promotionSprites[3].texture = app.loader.resources["images/spritesheet.json"].textures[`rook_${newColor}`];
+    promotionSprites[0].texture = app.loader.resources["images/spritesheet.min.json"].textures[`queen_${newColor}`];
+    promotionSprites[1].texture = app.loader.resources["images/spritesheet.min.json"].textures[`knight_${newColor}`];
+    promotionSprites[2].texture = app.loader.resources["images/spritesheet.min.json"].textures[`bishop_${newColor}`];
+    promotionSprites[3].texture = app.loader.resources["images/spritesheet.min.json"].textures[`rook_${newColor}`];
 }
 
 function initializeGame() {
