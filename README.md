@@ -11,9 +11,7 @@ nodemon # only if you have nodemon installed
 ```
 
 ## TODO
-- [ ] Check
-- [ ] Checkmate
-
+- [ ] check if a piece can be moved
 
 # License
 

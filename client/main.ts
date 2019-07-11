@@ -1,25 +1,36 @@
 import * as PIXI from 'pixi.js';
-import Board from './board';
-import { Events, DataStream, translateIntoPGNMove, PGNObject } from '../server/shared';
-import { PieceKind } from './piece';
+import { Board } from './board';
+import {
+    Color,
+    Events,
+    DataStream,
+    PGN,
+    PGNObject,
+    PieceKind,
+    BOARD_WIDTH,
+    BOARD_HEIGHT
+} from '../server/shared';
 import { Piece } from './piece';
-import { Colors } from '../server/player';
 
 const app = new PIXI.Application({
     backgroundColor: 0x2c2c2c,
     width: window.innerWidth,
-    height: window.innerHeight - 4
+    height: window.innerHeight - 4,
 });
 
 document.body.appendChild(app.view);
 
-let board: Board;
 let ws: WebSocket;
+
+let board: Board;
 let promotionWindow: PIXI.Graphics;
 let promotionSprites: PIXI.Sprite[] = [];
 let promotionPiece: Piece, promotionRow: number, promotionCol: number, promotionPGN: PGNObject;
-let dataStream = new DataStream();
 
+let checkInfo: PIXI.Text;
+let gameInfo: PIXI.Text;
+
+let dataStream = new DataStream();
 let infoEl = document.querySelector('#info');
 
 function loadAssets() {
@@ -61,7 +72,7 @@ function buildPromotionWindow() {
             promotionPGN.promotionKind = promotions[i];
             board.changePieceKind(promotionPiece, promotions[i]);
             board.placePieceIn(promotionRow, promotionCol, promotionPiece);
-            board.emit('movepiece', translateIntoPGNMove(board.color, promotionPGN));
+            board.emit('movepiece', PGN.translateInto(board.color, promotionPGN));
             hidePromotionWindow();
         });
     }
@@ -89,8 +100,8 @@ function initializeGame() {
 
     app.stage.addChild(board);
 
-    board.x = app.view.width / 2;
-    board.y = app.view.height / 2;
+    board.x = (app.view.width - BOARD_WIDTH) / 2;
+    board.y = (app.view.height - BOARD_HEIGHT) / 2;
 
     board.on('movepiece', function(moveText: string) {
         ws.send(dataStream
@@ -104,8 +115,51 @@ function initializeGame() {
         promotionRow = row;
         promotionCol = col;
         promotionPGN = pgn;
-        setPromotionColor(board.color == Colors.White ? 'white' : 'black');
+        setPromotionColor(board.color);
         showPromotionWindow();
+    });
+
+    board.on('check', function() {
+        checkInfo.text = 'Check!';
+    });
+
+    board.on('uncheck', function() {
+        checkInfo.text = '';
+    });
+
+    board.on('checkmate', function() {
+        checkInfo.text = 'Checkmate!';
+    });
+
+    checkInfo = new PIXI.Text('', {
+        align: 'center',
+        fill: '#e13232',
+        stroke: '#000',
+        strokeThickness: 2
+    });
+    app.stage.addChild(checkInfo);
+
+    checkInfo.anchor.set(0.5, 0.5);
+    checkInfo.x = app.view.width / 2;
+    checkInfo.y = app.view.height / 2 + BOARD_HEIGHT / 2 + 50; 
+
+    gameInfo = new PIXI.Text('', {
+        align: 'center',
+        fill: '#FEFEFE',
+        stroke: '#000',
+        strokeThickness: 2
+    });
+    app.stage.addChild(gameInfo);
+
+    gameInfo.anchor.set(0.5, 0.5);
+    gameInfo.x = app.view.width / 2;
+    gameInfo.y = app.view.height / 2 - BOARD_HEIGHT / 2 - 60; 
+
+
+    document.addEventListener('keypress', function(event) {
+        if (event.key == 'c') {
+            board.verifyCheck();
+        }
     });
 
     loadAssets();
@@ -132,7 +186,8 @@ function connectToServer() {
                     break;
                 
                 case Events.Color:
-                    board.color = parseInt(value);
+                    console.log(value);
+                    board.color = value;
                     board.resetBoard(app);
                     break;
                 
@@ -142,7 +197,7 @@ function connectToServer() {
                     break;
                 
                 case Events.ChangeTurn:
-                    let turnColor = parseInt(value);
+                    let turnColor = value;
 
                     board.moves++;
 
@@ -152,11 +207,11 @@ function connectToServer() {
 
                     if (turnColor == board.color) {
                         board.setActionsEnabled(true);
-                        console.log("Seu turno!");
+                        gameInfo.text = 'It\'s your turn!';
                     }
                     else {
                         board.setActionsEnabled(false);
-                        console.log("Turno do adversário!");
+                        gameInfo.text = `It's ${board.color == Color.Black ? 'white' : 'black' }'s turn!`;
                     }
                     break;
             

@@ -1,5 +1,5 @@
-import { Colors, Player } from './player';
-import { DataStream, Events } from './shared';
+import { Player } from './player';
+import { DataStream, Events, Color } from './shared';
 import * as uuidv4 from 'uuid/v4';
 import Board from './board';
 
@@ -24,7 +24,7 @@ export default class Match {
     joinPlayer(player: Player) {
         if (!this.player1) {
             this.player1 = player;
-            this.player1.color = Math.random() > 0.5 ? Colors.Black : Colors.White;
+            this.player1.color = Math.random() > 0.5 ? Color.Black : Color.White;
 
             this.player1.send(this.dataStream
                 .queue(Events.Color, this.player1.color)
@@ -33,10 +33,10 @@ export default class Match {
         }
         else {
             this.player2 = player;
-            if (this.player1.color == Colors.White)
-                this.player2.color = Colors.Black;
+            if (this.player1.color == Color.White)
+                this.player2.color = Color.Black;
             else
-                this.player2.color = Colors.White;
+                this.player2.color = Color.White;
             
             this.player2.send(this.dataStream
                 .queue(Events.Color, this.player2.color)
@@ -63,7 +63,7 @@ export default class Match {
 
     }
 
-    movePiece(color: Colors, moveText: string) {
+    movePiece(color: Color, moveText: string) {
         console.log(moveText);
         if (this.board.validateMove(color, moveText)) {
             if (this.player1.color == color) {
@@ -84,7 +84,7 @@ export default class Match {
 
     changeTurn() {
         if (!this.currentTurn) {
-            if (this.player1.color == Colors.White) {
+            if (this.player1.color == Color.White) {
                 this.currentTurn = this.player1;
             }
             else {

@@ -1,9 +1,5 @@
 import * as WebSocket from 'ws';
-
-export enum Colors {
-    Black,
-    White
-};
+import { Color } from './shared';
 
 export class Player {
     
@@ -17,11 +13,11 @@ export class Player {
         this.socket.send(data);
     }
     
-    private _color : Colors;
-    public get color() : Colors {
+    private _color : Color;
+    public get color() : Color {
         return this._color;
     }
-    public set color(v : Colors) {
+    public set color(v : Color) {
         this._color = v;
     }
 }

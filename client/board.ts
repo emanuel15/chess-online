@@ -1,7 +1,16 @@
 import * as PIXI from 'pixi.js';
-import {Piece,  PieceKind } from './piece';
-import { Colors } from '../server/player';
-import { translateFromPGNMove, translateIntoPGNMove, PGNObject } from '../server/shared';
+import {Piece } from './piece';
+import {
+    Color,
+    PGN,
+    PGNObject,
+    PieceKind,
+    PieceDirection,
+    BOARD_WIDTH,
+    BOARD_HEIGHT,
+    CELL_WIDTH,
+    CELL_HEIGHT
+} from '../server/shared';
 
 interface PieceList {
     leftRook: Piece;
@@ -29,6 +38,12 @@ interface Pieces {
     [key: string]: PieceList;
 }
 
+interface Pool {
+    white: Piece[];
+    black: Piece[];
+    [key: string]: Piece[];
+}
+
 interface Cell {
     isAvailable: boolean;
     isAttacked: boolean;
@@ -38,16 +53,12 @@ interface Cell {
     graphics: PIXI.Graphics;
 }
 
-export default class Board extends PIXI.Sprite {
-
-    static BOARD_WIDTH = 430;
-    static BOARD_HEIGHT = 430;
-    static CELL_WIDTH = Board.BOARD_WIDTH / 8;
-    static CELL_HEIGHT = Board.BOARD_HEIGHT / 8;
+export class Board extends PIXI.Sprite {
 
     private cells: Cell[][] = [];
 
     private pieces: Pieces;
+    private alivePieces: Pool;
 
     private availableCells: number[][] = [];
     private attackedCells: number[][] = [];
@@ -59,8 +70,6 @@ export default class Board extends PIXI.Sprite {
 
     public canKingCastle: boolean = false;
     public canQueenCastle: boolean = false;
-
-    // private potentialCheckers: Piece[] = [];
 
     public moves = -1;
 
@@ -80,14 +89,14 @@ export default class Board extends PIXI.Sprite {
                     graphics: new PIXI.Graphics()
                 });
 
-                let x = -Board.CELL_WIDTH * 4 + col * Board.CELL_WIDTH;
-                let y = -Board.CELL_HEIGHT * 4 + row * Board.CELL_HEIGHT;
+                let x = col * CELL_WIDTH;
+                let y = row * CELL_HEIGHT;
 
                 let cell = this.cells[row][col];
 
                 cell.graphics
                     .beginFill(cell.color)
-                        .drawRect(0, 0, Board.CELL_WIDTH, Board.CELL_HEIGHT)
+                        .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                     .endFill();
                 
                 cell.graphics.x = x;
@@ -109,48 +118,54 @@ export default class Board extends PIXI.Sprite {
 
         this.pieces = {
             black: {
-                leftRook: new Piece(sheet.textures["rook_black"], PieceKind.Rook, Piece.SIDES, 8),
-                leftKnight: new Piece(sheet.textures["knight_black"], PieceKind.Knight ,Piece.KNIGHT),
-                leftBishop: new Piece(sheet.textures["bishop_black"], PieceKind.Bishop, Piece.CORNERS, 8),
-                queen: new Piece(sheet.textures["queen_black"], PieceKind.Queen, Piece.ALL, 8),
-                king: new Piece(sheet.textures["king_black"], PieceKind.King, Piece.ALL, 1),
-                rightBishop: new Piece(sheet.textures["bishop_black"], PieceKind.Bishop, Piece.CORNERS, 8),
-                rightKnight: new Piece(sheet.textures["knight_black"], PieceKind.Knight, Piece.KNIGHT),
-                rightRook: new Piece(sheet.textures["rook_black"], PieceKind.Rook, Piece.SIDES, 8),
-                pawn0: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn1: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn2: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn3: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn4: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn5: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn6: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn7: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
+                leftRook: new Piece(sheet.textures["rook_black"], PieceKind.Rook, PieceDirection.Sides, 8),
+                leftKnight: new Piece(sheet.textures["knight_black"], PieceKind.Knight ,0),
+                leftBishop: new Piece(sheet.textures["bishop_black"], PieceKind.Bishop, PieceDirection.Corners, 8),
+                queen: new Piece(sheet.textures["queen_black"], PieceKind.Queen, PieceDirection.All, 8),
+                king: new Piece(sheet.textures["king_black"], PieceKind.King, PieceDirection.All, 1),
+                rightBishop: new Piece(sheet.textures["bishop_black"], PieceKind.Bishop, PieceDirection.Corners, 8),
+                rightKnight: new Piece(sheet.textures["knight_black"], PieceKind.Knight, 0),
+                rightRook: new Piece(sheet.textures["rook_black"], PieceKind.Rook, PieceDirection.Sides, 8),
+                pawn0: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn1: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn2: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn3: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn4: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn5: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn6: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn7: new Piece(sheet.textures["pawn_black"], PieceKind.Pawn, PieceDirection.Up, 2),
             },
             white: {
-                leftRook: new Piece(sheet.textures["rook_white"], PieceKind.Rook, Piece.SIDES, 8),
-                leftKnight: new Piece(sheet.textures["knight_white"], PieceKind.Knight, Piece.KNIGHT),
-                leftBishop: new Piece(sheet.textures["bishop_white"], PieceKind.Bishop, Piece.CORNERS, 8),
-                queen: new Piece(sheet.textures["queen_white"], PieceKind.Queen, Piece.ALL, 8),
-                king: new Piece(sheet.textures["king_white"], PieceKind.King, Piece.ALL, 1),
-                rightBishop: new Piece(sheet.textures["bishop_white"], PieceKind.Bishop, Piece.CORNERS, 8),
-                rightKnight: new Piece(sheet.textures["knight_white"], PieceKind.Knight, Piece.KNIGHT),
-                rightRook: new Piece(sheet.textures["rook_white"], PieceKind.Rook, Piece.SIDES, 8),
-                pawn0: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn1: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn2: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn3: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn4: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn5: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn6: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
-                pawn7: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, Piece.UP | Piece.PAWN, 2),
+                leftRook: new Piece(sheet.textures["rook_white"], PieceKind.Rook, PieceDirection.Sides, 8),
+                leftKnight: new Piece(sheet.textures["knight_white"], PieceKind.Knight, 0),
+                leftBishop: new Piece(sheet.textures["bishop_white"], PieceKind.Bishop, PieceDirection.Corners, 8),
+                queen: new Piece(sheet.textures["queen_white"], PieceKind.Queen, PieceDirection.All, 8),
+                king: new Piece(sheet.textures["king_white"], PieceKind.King, PieceDirection.All, 1),
+                rightBishop: new Piece(sheet.textures["bishop_white"], PieceKind.Bishop, PieceDirection.Corners, 8),
+                rightKnight: new Piece(sheet.textures["knight_white"], PieceKind.Knight, 0),
+                rightRook: new Piece(sheet.textures["rook_white"], PieceKind.Rook, PieceDirection.Sides, 8),
+                pawn0: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn1: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn2: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn3: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn4: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn5: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn6: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
+                pawn7: new Piece(sheet.textures["pawn_white"], PieceKind.Pawn, PieceDirection.Up, 2),
             },
         }
+
+        this.alivePieces = {
+            white: [],
+            black: []
+        };
 
         for (const color in this.pieces) {
             for (const key in this.pieces[color]) {
                 let piece = this.pieces[color][key];
                 piece.on('piecedown', this.onPieceDown, this);
                 piece.board = this;
+                this.alivePieces[color].push(piece);
             }
         }
 
@@ -166,8 +181,8 @@ export default class Board extends PIXI.Sprite {
                 let letter = this.letters[this.letters.length - 1];
 
                 letter.anchor.set(0.5, 0.5);
-                letter.x = (-Board.BOARD_WIDTH / 2) + Board.CELL_WIDTH / 2 + i * Board.CELL_WIDTH;
-                letter.y = -Board.BOARD_HEIGHT / 2 - letter.height / 2 - 6 + j * (Board.BOARD_HEIGHT + letter.height + 6);
+                letter.x = CELL_WIDTH / 2 + i * CELL_WIDTH;
+                letter.y = -letter.height / 2 - 6 + j * (BOARD_HEIGHT + letter.height + 6);
                 this.addChild(letter);
 
                 c = String.fromCharCode(c.charCodeAt(0) + 1);
@@ -185,8 +200,8 @@ export default class Board extends PIXI.Sprite {
 
                 let letter = this.letters[this.letters.length - 1];
                 letter.anchor.set(0.5, 0.5);
-                letter.x = -Board.BOARD_WIDTH / 2 - letter.width / 2 - 10 + j * (Board.BOARD_WIDTH + letter.width / 2 + 20);
-                letter.y = -Board.BOARD_HEIGHT / 2 + i * Board.CELL_HEIGHT + Board.CELL_HEIGHT / 2;
+                letter.x = -letter.width / 2 - 10 + j * (BOARD_WIDTH + letter.width / 2 + 25);
+                letter.y = i * CELL_HEIGHT + CELL_HEIGHT / 2;
                 this.addChild(letter);
 
                 c = String.fromCharCode(c.charCodeAt(0) - 1);
@@ -207,7 +222,7 @@ export default class Board extends PIXI.Sprite {
             }
         }
 
-        if (this.color == Colors.Black) {
+        if (this.color == Color.Black) {
             let pieces = this.pieces.black;
 
             this.setPieceIn(7, 0, pieces.leftRook);
@@ -236,14 +251,14 @@ export default class Board extends PIXI.Sprite {
 
             for (let i = 0; i < 8; i++) {
                 let piece = this.pieces.black["pawn" + i];
-                piece.directions = Piece.UP | Piece.PAWN;
+                piece.directions = PieceDirection.Up;
                 this.addChild(piece);
                 this.setPieceIn(6, i, piece);
             }
 
             for (let i = 0; i < 8; i++) {
                 let piece = this.pieces.white["pawn" + i];
-                piece.directions = Piece.DOWN | Piece.PAWN;
+                piece.directions = PieceDirection.Down;
                 this.addChild(piece);
                 this.setPieceIn(1, i, piece);
             }
@@ -277,7 +292,7 @@ export default class Board extends PIXI.Sprite {
 
             for (let i = 0; i < 8; i++) {
                 let piece = this.pieces.white["pawn" + i];
-                piece.directions = Piece.UP | Piece.PAWN;
+                piece.directions = PieceDirection.Up;
                 piece.hasMoved = false;
                 this.addChild(piece);
                 this.setPieceIn(6, i, piece);
@@ -285,7 +300,7 @@ export default class Board extends PIXI.Sprite {
 
             for (let i = 0; i < 8; i++) {
                 let piece = this.pieces.black["pawn" + i];
-                piece.directions = Piece.DOWN | Piece.PAWN;
+                piece.directions = PieceDirection.Down;
                 piece.hasMoved = false;
                 this.addChild(piece);
                 this.setPieceIn(1, i, piece);
@@ -298,11 +313,11 @@ export default class Board extends PIXI.Sprite {
     resetLetters() {
         // letters
         for (let j = 0; j < 2; j++) {
-            let c = this.color == Colors.Black ? 'h' : 'a';
+            let c = this.color == Color.Black ? 'h' : 'a';
             for (let i = 0 + j * 8; i < 8 + j * 8; i++) {
                 this.letters[i].text = c;
 
-                if (this.color == Colors.Black)    
+                if (this.color == Color.Black)
                     c = String.fromCharCode(c.charCodeAt(0) - 1);
                 else
                     c = String.fromCharCode(c.charCodeAt(0) + 1);
@@ -311,11 +326,11 @@ export default class Board extends PIXI.Sprite {
 
         // numbers
         for (let j = 0; j < 2; j++) {
-            let c = this.color == Colors.Black ? '1' : '8';
+            let c = this.color == Color.Black ? '1' : '8';
             for (let i = 16 + j * 8; i < 24 + j * 8; i++) {
                 this.letters[i].text = c;
 
-                if (this.color == Colors.Black)    
+                if (this.color == Color.Black)    
                     c = String.fromCharCode(c.charCodeAt(0) + 1);
                 else
                     c = String.fromCharCode(c.charCodeAt(0) - 1);
@@ -335,9 +350,6 @@ export default class Board extends PIXI.Sprite {
                 }
                 else if (cell.isAvailable) {
                     cell.graphics.tint = 0x42fe42;
-                    // cell.graphics.beginFill(0, 0.3);
-                    // cell.graphics.drawCircle(Board.CELL_WIDTH / 2, Board.CELL_WIDTH / 2, 7);
-                    // cell.graphics.endFill();
                 }
                 else if (cell.isSelected) {
                     cell.graphics.tint = 0x9662f6;
@@ -350,18 +362,16 @@ export default class Board extends PIXI.Sprite {
     }
 
     clearPassants() {
-        for (const color in this.pieces) {
-            for (const key in this.pieces[color]) {
-                this.pieces[color][key].isAdvanced = false;
-                this.pieces[color][key].isEnPassant = false;
+        for (const color in this.alivePieces) {
+            for (let piece of this.alivePieces[color]) {
+                piece.isAdvanced = false;
+                piece.isEnPassant = false;
             }
         }
     }
 
     setActionsEnabled(isEnabled: boolean) {
-        let color = this.color == Colors.White ? 'white' : 'black';
-        for (const key in this.pieces[color]) {
-            let piece = this.pieces[color][key];
+        for (let piece of this.alivePieces[this.color]) {
             piece.interactive = isEnabled;
             piece.buttonMode = isEnabled;
         }
@@ -370,11 +380,7 @@ export default class Board extends PIXI.Sprite {
     changePieceKind(piece: Piece, newKind: PieceKind) {
         piece.kind = newKind;
 
-        let color;
-        if (piece.isPlayer)
-            color = this.color == Colors.Black ? 'black' : 'white';
-        else
-            color = this.color == Colors.Black ? 'white' : 'black';
+        let color = piece.isPlayer ? this.color : this.enemyColor;
 
         switch (newKind) {
             case PieceKind.Queen:
@@ -406,28 +412,195 @@ export default class Board extends PIXI.Sprite {
         }
     }
 
-    // verifyCheck() {
-    //     let myColor = this.color == Colors.Black ? 'black' : 'white';
-    //     let otherColor = this.color == Colors.Black ? 'white' : 'black';
+    verifyCheck(color: Color = this.color): any {
+        let enemyColor = color == Color.White ? Color.Black : Color.White;
+        let king = this.pieces[color].king;
+        let kingCells = king.getAvailableCells();
 
-    //     let king = this.pieces[myColor].king;
-    //     let isPotentialUp = false;
-    //     // checks the sides
-    //     for (let i = 1; i <= 8; i++) {
-    //         let upRow = king.row - i;
-    //         let leftCol = king.col - i;
-    //         let rightCol = king.col + i;
-    //         let downRow = king.row + i;
+        let nearAttackedCells: number[][] = [];
+        let checkCells: number[][] = [];
 
+        let piecesAttacking: Piece[] = [];
+
+        for (let piece of this.alivePieces[enemyColor]) {
+            if (piece.kind == PieceKind.King)
+                continue;
             
-    //     }
-    // }
+            let cells = piece.getAvailableCells();
+
+            // verify how many and which pieces are attacking the king
+            for (let i = 0; i < cells.length; i++) {
+                let [row, col] = cells[i];
+                if (row == king.row && col == king.col) {
+                    let canBreak = false;
+
+                    // get the cells in the same direction as the king
+                    for (let j = i - 1; j >= 0; j--) {
+                        let [prevRow, prevCol] = cells[j];
+                        checkCells.push([prevRow, prevCol]);
+
+                        for (let r = prevRow - 1; r <= prevRow + 1; r++) {
+                            for (let c = prevCol - 1; c <= prevCol + 1; c++) {
+                                if (r == piece.row && c == piece.col) {
+                                    canBreak = true;
+                                    break;
+                                }
+                            }
+                            if (canBreak)
+                                break;
+                        }
+                        if (canBreak)
+                            break;
+                    }
+
+                    piecesAttacking.push(piece);
+                }
+            }
+
+            // verify which cells the king can't go to
+            for (let j = 0; j < kingCells.length; j++) {
+                let [kingRow, kingCol] = kingCells[j];
+                for (let u = 0; u < cells.length; u++) {
+                    let [attackRow, attackCol] = cells[u];
+                    if (kingRow == attackRow && kingCol == attackCol) {
+                        nearAttackedCells.push([kingRow, kingCol]);
+                    }
+                }
+            }
+        }
+
+        let isInCheck = piecesAttacking.length > 0;
+        let isCheckmate = false;
+
+        console.log('Is in check: ', isInCheck);
+        if (isInCheck) {
+            // this.emit('check');
+
+            // remove the cells that are being attacked from the list the king can go tov
+            for (let i = kingCells.length - 1; i >= 0; i--) {
+                let [kingRow, kingCol] = kingCells[i];
+                for (let j = 0; j < nearAttackedCells.length; j++) {
+                    let [checkRow, checkCol] = nearAttackedCells[j];
+                    if (kingRow == checkRow && kingCol == checkCol) {
+                        kingCells.splice(i, 1);
+                    }
+                }
+            }
+
+            // double check, king must move
+            if (piecesAttacking.length > 1) {
+                // no cells available, it's a checkmate
+                if (kingCells.length == 0) {
+                    isCheckmate = true;
+                    // console.log('checkmate');
+                }
+            }
+            else {
+                let attacker = piecesAttacking[0];
+
+                // checks if the attacking piece can be captured by the king
+                for (let i = 0; i < kingCells.length; i++) {
+                    let [kingRow, kingCol] = kingCells[i];
+                    // piece is near the king
+                    if (attacker.row == kingRow && attacker.col == kingCol) {
+                        for (let piece of this.alivePieces[enemyColor]) {
+                            if (piece.kind == PieceKind.King || piece === attacker)
+                                continue;
+                            
+                            let cells = piece.getAvailableCells(true);
+                            let [lastRow, lastCol] = cells[cells.length - 1];
+
+                            if (lastRow == attacker.row && lastCol == attacker.col) {
+                                // enemy piece is defending the attacker,
+                                // the king can move or a friendly piece can capture the attacker
+                                kingCells.splice(i, 1);
+                                // console.log('Defensor: ', piece.kind);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                // if king can't move
+                if (kingCells.length == 0) {
+
+                    // check if the attacker can be captured
+                    let canCapture = false;
+
+                    for (let piece of this.alivePieces[color]) {
+                        if (piece.kind == PieceKind.King)
+                            continue;
+                        
+                        let cells = piece.getAvailableCells();
+                        for (let i = 0; i < cells.length; i++) {
+                            let [cellRow, cellCol] = cells[i];
+
+                            // friendly piece can capture the attacker
+                            if (cellRow == attacker.row && cellCol == attacker.col) {
+                                canCapture = true;
+                                break;
+                            }
+                        }
+
+                        if (canCapture)
+                            break;
+                    }
+
+                    console.log('Can capture: ', canCapture);
+
+                    // neither the king nor a friendly piece can capture the attacker
+                    if (!canCapture) {
+                        // check if it's possible to cover the check
+                        let canCover = false;
+
+                        for (let piece of this.alivePieces[color]) {
+                            if (piece.kind == PieceKind.King)
+                                continue;
+                            
+                            let cells = piece.getAvailableCells();
+                            if (cells.length > 0) {
+                                for (let i = 0; i < cells.length; i++) {
+                                    let [row, col] = cells[i];
+                                    for (let j = 0; j < checkCells.length; j++) {
+                                        let [attackRow, attackCol] = checkCells[j];
+                                        if (attackRow == row && attackCol == col) {
+                                            canCover = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        console.log('Can cover: ', canCover);
+                        // if can't cover it's a CHECKMATE
+                        if (!canCover)
+                            isCheckmate = true;
+                            // this.emit('checkmate');
+                            // console.log('checkmate');
+                    }
+                }
+            }
+
+            console.log('Attacked cells: ', checkCells);
+            console.log('Pieces attacking: ', piecesAttacking);
+            console.log('Near attacked cells: ', nearAttackedCells);
+            console.log('Available cells: ', kingCells);
+        }
+
+        return {
+            available: kingCells,
+            isInCheck: isInCheck,
+            isCheckmate: isCheckmate,
+        }
+    }
 
     validateMove(moveText: string) {
-        let move = translateFromPGNMove(this.color == Colors.White ? Colors.Black : Colors.White, moveText);
+        let move = PGN.translateFrom(this.color == Color.White ? Color.Black : Color.White, moveText);
 
         if (move.isKingSideCastle) {
-            if (this.color == Colors.Black) {
+            if (this.color == Color.Black) {
                 let leftRook = this.getPieceIn(0, 0);
                 if (leftRook && leftRook.kind == PieceKind.Rook && !leftRook.hasMoved) {
                     let king = this.pieces.white.king;
@@ -462,7 +635,7 @@ export default class Board extends PIXI.Sprite {
             return;
         }
         else if (move.isQueenSideCastle) {
-            if (this.color == Colors.Black) {
+            if (this.color == Color.Black) {
                 let rightRook = this.getPieceIn(0, 7);
                 if (rightRook && rightRook.kind == PieceKind.Rook && !rightRook.hasMoved) {
                     let king = this.pieces.white.king;
@@ -491,7 +664,7 @@ export default class Board extends PIXI.Sprite {
                     king.hasMoved = true;
 
                     this.setPieceIn(0, 3, leftRook);
-                    this.setPieceIn(0, 2, this.pieces.black.king);
+                    this.setPieceIn(0, 2, king);
                 }
             }
             return;
@@ -502,26 +675,22 @@ export default class Board extends PIXI.Sprite {
         let fromRow = move.fromRow;
         let fromCol = move.fromCol;
 
-        if (this.color == Colors.Black) {
+        if (this.color == Color.Black) {
             row = 7 - row;
             col = 7 - col;
             fromRow = 7 - fromRow;
             fromCol = 7 - fromCol;
-            console.log('ALO', fromRow, fromCol, row, col);
         }
-
-        console.log(move);
 
         let piece = this.cells[fromRow][fromCol].piece;
         let cells = piece.getAvailableCells();
-
-        console.log(piece, cells);
 
         if (piece.kind == move.pieceKind) {
             for (let i = 0; i < cells.length; i++) {
                 let cell = cells[i];
                 if (row == cell[0] && col == cell[1]) {
-                    
+                    console.log(piece.kind);
+
                     if (move.isPawnPromotion) {
                         this.changePieceKind(piece, move.promotionKind);
                     }
@@ -548,16 +717,15 @@ export default class Board extends PIXI.Sprite {
                         this.setCellAvailable(row, col, true);
                     }
 
+                    this.placePieceIn(row, col, piece);
+
                     if (move.isCheck) {
-                        if (this.color == Colors.Black) {
-                            this.pieces.white.king.tint = 0xFF0000;
-                        }
-                        else {
-                            this.pieces.black.king.tint = 0xFF0000;
-                        }
+                        this.emit('check');
+                    }
+                    else if (move.isCheckMate) {
+                        this.emit('checkmate');
                     }
 
-                    this.placePieceIn(row, col, piece);
                     break;
                 }
             }
@@ -577,25 +745,12 @@ export default class Board extends PIXI.Sprite {
 
     setPieceIn(row: number, col: number, piece: Piece) {
         if (piece) {
-            piece.x = (-Board.BOARD_WIDTH / 2) + (Board.CELL_WIDTH / 2) + col * Board.CELL_WIDTH;
-            piece.y = (-Board.BOARD_HEIGHT / 2) + (Board.CELL_HEIGHT / 2) + row * Board.CELL_HEIGHT;
+            piece.x = CELL_WIDTH / 2 + col * CELL_WIDTH;
+            piece.y = CELL_HEIGHT / 2 + row * CELL_HEIGHT;
         }
         this.cells[row][col].piece = piece;
         piece.row = row;
         piece.col = col;
-    }
-
-    getPosFromPiece(piece: Piece): number[] {
-        let output: number[] = [];
-        for (let row = 0; row < this.cells.length; row++) {
-            for (let col = 0; col < this.cells[row].length; col++) {
-                if (this.cells[row][col].piece == piece) {
-                    output[0] = row;
-                    output[1] = col;
-                    return output;
-                }
-            }
-        }
     }
 
     setCellAttacked(row: number, col: number, attacked: boolean = true) {
@@ -656,15 +811,19 @@ export default class Board extends PIXI.Sprite {
         this.attackedCells.splice(0, this.attackedCells.length);
     }
 
-    getRowColIn(x: number, y: number): number[] {
-        return [Math.floor(y / Board.CELL_HEIGHT), Math.floor(x / Board.CELL_WIDTH)];
-    }
-
     removePieceFrom(row: number, col: number) {
         let piece = this.getPieceIn(row, col);
         if (piece) {
             this.cells[row][col].piece = null;
             piece.parent.removeChild(piece);
+
+            let color = piece.isPlayer ? this.color : this.enemyColor;
+            for (let i = 0; i < this.alivePieces[color].length; i++) {
+                if (this.alivePieces[color][i] == piece) {
+                    this.alivePieces[color].splice(i, 1);
+                    break;
+                }
+            }
         }
     }
 
@@ -672,29 +831,20 @@ export default class Board extends PIXI.Sprite {
         if (row >= 0 && row <= 7 && col >= 0 && col <= 7) {
 
             if (this.cells[row][col].isAttacked || this.cells[row][col].isAvailable) {
-                let [oldRow, oldCol] = this.getPosFromPiece(piece);
+                this.emit('uncheck');
+
+                let oldRow = piece.row;
+                let oldCol = piece.col;
                 
-                if (this.cells[row][col].isAvailable) {
-                    let cells = piece.getAvailableCells();
-                    for (let i = 0; i < cells.length; i++) {
-                        let [row, col] = cells[i];
-                        let cellPiece = this.getPieceIn(row, col);
-                        if (cellPiece && cellPiece.kind == PieceKind.King && cellPiece.isPlayer != piece.isPlayer) {
-                            cellPiece.tint = 0xFF0000;
-                        }
-                    }
-                }
-                else if (this.cells[row][col].isAttacked) {
+                if (this.cells[row][col].isAttacked) {
                     let attackedPiece = this.cells[row][col].piece;
                     if (!attackedPiece) {
                         attackedPiece = this.cells[row+1][col].piece;
                         if (attackedPiece && attackedPiece.isEnPassant) {
-                            // attackedPiece.parent.removeChild(attackedPiece);
                             this.removePieceFrom(row+1, col);
                         }
                     }
                     else {
-                        // attackedPiece.parent.removeChild(attackedPiece);
                         this.removePieceFrom(row, col);
                     }
                 }
@@ -728,10 +878,12 @@ export default class Board extends PIXI.Sprite {
     }
 
     private onCellClick(event: PIXI.interaction.InteractionEvent) {
-        let cell = <PIXI.Graphics>event.target;
-        let pos = cell.getGlobalPosition();
 
-        let [row, col] = this.getRowColIn((pos.x - (this.x - Board.BOARD_WIDTH / 2)), (pos.y - (this.y - Board.BOARD_HEIGHT / 2)));
+        let { x: clickX, y: clickY } = event.data.getLocalPosition(this);
+
+        let row = Math.floor(clickY / CELL_HEIGHT);
+        let col = Math.floor(clickX / CELL_WIDTH);
+
         let piece = this.selectedCell.piece;
 
         let oldRow = piece.row;
@@ -769,7 +921,7 @@ export default class Board extends PIXI.Sprite {
         if (piece.kind == PieceKind.King) {
             if (this.canKingCastle) {
                 this.canKingCastle = false;
-                if (this.color == Colors.Black) {
+                if (this.color == Color.Black) {
                     if (row == 7 && col == 1) {
                         let leftRook = this.getPieceIn(7, 0);
                         this.placePieceIn(7, 1, piece);
@@ -778,7 +930,7 @@ export default class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 2, leftRook);
 
                         pgn.isKingSideCastle = true;
-                        this.emit('movepiece', translateIntoPGNMove(this.color, pgn));
+                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
                 }
@@ -791,14 +943,14 @@ export default class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 5, rightRook);
 
                         pgn.isKingSideCastle = true;
-                        this.emit('movepiece', translateIntoPGNMove(this.color, pgn));
+                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
                 }
             }
             if (this.canQueenCastle) {
                 this.canQueenCastle = false;
-                if (this.color == Colors.Black) {
+                if (this.color == Color.Black) {
                     if (row == 7 && col == 5) {
                         let rightRook = this.getPieceIn(7, 7);
                         this.placePieceIn(7, 5, piece);
@@ -807,7 +959,7 @@ export default class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 4, rightRook);
             
                         pgn.isQueenSideCastle = true;
-                        this.emit('movepiece', translateIntoPGNMove(this.color, pgn));
+                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
                 }
@@ -820,7 +972,7 @@ export default class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 3, leftRook);
             
                         pgn.isQueenSideCastle = true;
-                        this.emit('movepiece', translateIntoPGNMove(this.color, pgn));
+                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
                 }
@@ -829,12 +981,19 @@ export default class Board extends PIXI.Sprite {
 
         this.placePieceIn(row, col, piece);
 
-        this.emit('movepiece', translateIntoPGNMove(this.color, pgn));
+        let checkState = this.verifyCheck(this.color == Color.Black ? Color.White : Color.Black);
+        pgn.isCheck = checkState.isInCheck;
+
+        if (checkState.isCheckmate) {
+            pgn.isCheck = false;
+            pgn.isCheckMate = true;
+        }
+
+        this.emit('movepiece', PGN.translateInto(this.color, pgn));
     }
 
     private onPieceDown(event: PIXI.interaction.InteractionEvent) {
         let piece = <Piece>event.target;
-        let pos = this.getPosFromPiece(piece);
 
         // bring piece to front in the Z index
         piece.parent.setChildIndex(piece, piece.parent.children.length - 1);
@@ -845,10 +1004,24 @@ export default class Board extends PIXI.Sprite {
         if (this.selectedCell)
             this.selectedCell.isSelected = false;
         
-        this.selectedCell = this.cells[pos[0]][pos[1]];
-        this.cells[pos[0]][pos[1]].isSelected = true;
+        this.selectedCell = this.cells[piece.row][piece.col];
+        this.cells[piece.row][piece.col].isSelected = true;
+        
+        let cells;
+        if (piece.kind == PieceKind.King) {
+            let checkState = this.verifyCheck();
+            if (checkState.isInCheck) {
+                cells = checkState.available;
+            }
+            else {
+                cells = piece.getAvailableCells();
+            }
+        }
+        else {
+            cells = piece.getAvailableCells();
+        }
 
-        let cells = piece.getAvailableCells();
+        console.log(cells);
 
         for (let i = 0; i < cells.length; i++) {
             let [row, col] = cells[i];
@@ -874,70 +1047,29 @@ export default class Board extends PIXI.Sprite {
                 }
             }
         }
-
-        piece.once('pieceup', this.onPieceUp, this);
     }
-
-    private onPieceUp(event: PIXI.interaction.InteractionEvent) {
-        let piece = <Piece>event.target;
-
-        let pos = piece.getGlobalPosition();
-
-        let [row, col] = this.getRowColIn((pos.x - (this.x - Board.BOARD_WIDTH / 2)), (pos.y - (this.y - Board.BOARD_HEIGHT / 2)));
-        let oldRow = piece.row;
-        let oldCol = piece.col;
-
-        if (!this.placePieceIn(row, col, piece)) {
-            //@ts-ignore
-            piece.x = piece.originalPos[0];
-            //@ts-ignore
-            piece.y = piece.originalPos[1];
-        }
-        else {
-            let pgn: PGNObject = {
-                fromCol: oldCol,
-                fromRow: oldRow,
-                toCol: col,
-                toRow: row,
-                isCheck: false,
-                isCheckMate: false,
-                isKingSideCastle: false,
-                isQueenSideCastle: false,
-                hasCapture: false,
-                promotionKind: null,
-                isPawnPromotion: false,
-                pieceKind: piece.kind
-            };
     
-            if (this.cells[row][col].isAttacked) {
-                pgn.hasCapture = true;
-            }
-
-            this.emit('movepiece', translateIntoPGNMove(this.color, pgn));
-        }
-    }
-
-    
-    private _color : Colors;
-    public get color() : Colors {
+    private _color : Color = Color.White;
+    public get color() : Color {
         return this._color;
     }
-    public set color(v : Colors) {
-        let currentColor = this.color == Colors.Black ? 'black' : 'white';
-        let newColor = v == Colors.Black ? 'black' : 'white';
-
-        for (const key in this.pieces[currentColor]) {
-            let piece = this.pieces[currentColor][key];
+    public set color(v : Color) {
+        for (const key in this.pieces[this.color]) {
+            let piece = this.pieces[this.color][key];
             piece.isPlayer = false;
             piece.buttonMode = false
             piece.interactive = false;
-
-            let otherPiece = this.pieces[newColor][key];
+            
+            let otherPiece = this.pieces[v][key];
             otherPiece.isPlayer = true;
             otherPiece.buttonMode = true;
             otherPiece.interactive = true;
         }
 
         this._color = v;
+    }
+
+    private get enemyColor(): string {
+        return this.color == Color.Black ? Color.White : Color.Black;
     }
 }

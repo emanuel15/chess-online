@@ -1,30 +1,7 @@
 import Board from './board';
-
-export enum PieceKind {
-    Pawn = 'P',
-    Rook = 'R',
-    Bishop = 'B',
-    Knight = 'N',
-    Queen = 'Q',
-    King = 'K',
-}
+import { PieceKind, PieceDirection } from './shared';
 
 export class Piece {
-
-    static LEFT = 2;
-    static RIGHT = 4;
-    static UP = 8;
-    static DOWN = 16;
-    static LEFT_UP = 32;
-    static RIGHT_UP = 64;
-    static LEFT_DOWN = 128;
-    static RIGHT_DOWN = 256;
-    static KNIGHT = 512;
-    static PAWN = 1024;
-    
-    static SIDES = Piece.LEFT | Piece.RIGHT | Piece.UP | Piece.DOWN;
-    static CORNERS = Piece.LEFT_UP | Piece.RIGHT_UP | Piece.LEFT_DOWN | Piece.RIGHT_DOWN;
-    static ALL = Piece.SIDES | Piece.CORNERS;
     
     public directions: number = 0;
     public count: number = 0;
@@ -47,7 +24,7 @@ export class Piece {
         this.kind = kind;
     }
 
-    getAvailableCells(): number[][] {
+    getAvailableCells(getLastPiece: boolean = false): number[][] {
         let cells: number[][] = [];
         let pos = [this.row, this.col];
 
@@ -118,7 +95,7 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.KNIGHT) == Piece.KNIGHT) {
+        if (this.kind == PieceKind.Knight) {
 
             for (let i = 30; i < 360; i += 360/12) {
                 if (i % 90 == 0)
@@ -130,7 +107,7 @@ export class Piece {
 
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -143,8 +120,8 @@ export class Piece {
             return cells;
         }
 
-        if ((this.directions & Piece.PAWN) == Piece.PAWN) {
-            if ((this.directions & Piece.UP) == Piece.UP) {
+        if (this.kind == PieceKind.Pawn) {
+            if ((this.directions & PieceDirection.Up) == PieceDirection.Up) {
                 // en passant
                 for (let col = pos[1] - 1; col <= pos[1] + 1; col += 2) {
                     let nearPiece = this.board.getPieceIn(pos[0], col);
@@ -160,7 +137,7 @@ export class Piece {
                         for (let i = pos[1] - 1; i <= pos[1] + 1; i += 2) {
                             let cellPiece = this.board.getPieceIn(row, i);
                             if (cellPiece) {
-                                if (cellPiece.isWhite != this.isWhite) {
+                                if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                                     if (this.board.isValidCell(row, i))
                                         cells.push([row, i]);
                                 }
@@ -178,13 +155,13 @@ export class Piece {
                 }
                 return cells;
             }
-            if ((this.directions & Piece.DOWN) == Piece.DOWN) {
+            if ((this.directions & PieceDirection.Down) == PieceDirection.Down) {
                 for (let row = pos[0] + 1; row <= pos[0] + this.count; row++) {
                     if (row == pos[0] + 1) {
                         for (let i = pos[1] - 1; i <= pos[1] + 1; i += 2) {
                             let cellPiece = this.board.getPieceIn(row, i);
                             if (cellPiece) {
-                                if (cellPiece.isWhite != this.isWhite) {
+                                if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                                     if (this.board.isValidCell(row, i))
                                         cells.push([row, i]);
                                 }
@@ -201,11 +178,11 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.UP) == Piece.UP) {
+        if ((this.directions & PieceDirection.Up) == PieceDirection.Up) {
             for (let row = pos[0] - 1; row >= pos[0] - this.count; row--) {
                 let cellPiece = this.board.getPieceIn(row, pos[1]);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(row, pos[1]))
                             cells.push([row, pos[1]]);
                     }
@@ -216,11 +193,11 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.DOWN) == Piece.DOWN) {
+        if ((this.directions & PieceDirection.Down) == PieceDirection.Down) {
             for (let row = pos[0] + 1; row <= pos[0] + this.count; row++) {
                 let cellPiece = this.board.getPieceIn(row, pos[1]);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(row, pos[1]))
                             cells.push([row, pos[1]]);
                     }
@@ -231,11 +208,11 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.LEFT) == Piece.LEFT) {
+        if ((this.directions & PieceDirection.Left) == PieceDirection.Left) {
             for (let col = pos[1] - 1; col >= pos[1] - this.count; col--) {
                 let cellPiece = this.board.getPieceIn(pos[0], col);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(pos[0], col))
                             cells.push([pos[0], col]);
                     }
@@ -246,11 +223,11 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.RIGHT) == Piece.RIGHT) {
+        if ((this.directions & PieceDirection.Right) == PieceDirection.Right) {
             for (let col = pos[1] + 1; col <= pos[1] + this.count; col++) {
                 let cellPiece = this.board.getPieceIn(pos[0], col);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(pos[0], col))
                             cells.push([pos[0], col]);
                     }
@@ -261,12 +238,12 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.LEFT_UP) == Piece.LEFT_UP) {
+        if ((this.directions & PieceDirection.LeftUp) == PieceDirection.LeftUp) {
             let col = pos[1] - 1;
             for (let row = pos[0] - 1; row >= pos[0] - this.count; row--) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -278,12 +255,12 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.RIGHT_UP) == Piece.RIGHT_UP) {
+        if ((this.directions & PieceDirection.RightUp) == PieceDirection.RightUp) {
             let col = pos[1] + 1;
             for (let row = pos[0] - 1; row >= pos[0] - this.count; row--) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -295,12 +272,12 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.LEFT_DOWN) == Piece.LEFT_DOWN) {
+        if ((this.directions & PieceDirection.LeftDown) == PieceDirection.LeftDown) {
             let col = pos[1] - 1;
             for (let row = pos[0] + 1; row <= pos[0] + this.count; row++) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -312,12 +289,12 @@ export class Piece {
             }
         }
 
-        if ((this.directions & Piece.RIGHT_DOWN) == Piece.RIGHT_DOWN) {
+        if ((this.directions & PieceDirection.RightDown) == PieceDirection.RightDown) {
             let col = pos[1] + 1;
             for (let row = pos[0] + 1; row <= pos[0] + this.count; row++) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isWhite != this.isWhite) {
+                    if (cellPiece.isWhite != this.isWhite || getLastPiece) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
