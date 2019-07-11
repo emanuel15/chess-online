@@ -40,10 +40,6 @@ interface Cell {
 }
 
 export default class Board {
-    static BOARD_WIDTH = 430;
-    static BOARD_HEIGHT = 430;
-    static CELL_WIDTH = Board.BOARD_WIDTH / 8;
-    static CELL_HEIGHT = Board.BOARD_HEIGHT / 8;
 
     private cells: Cell[][] = [];
 
