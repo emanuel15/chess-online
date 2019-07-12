@@ -1,17 +1,18 @@
 # Chess Online
 A simple online chess game made using Node.js, WebSockets and PixiJS.
 
+[Play the online demo here](https://shielded-waters-93012.herokuapp.com/)
+
 ## How to run
-The game is still under construction, so you can only run development tasks:
 ```
 npm run devserver # starts webpack-dev-server
 npm run watch # starts webpack in watch mode
-npm start # starts the server
+npm start:dev # starts the server
+npm build:client # builds the client
+npm build:server # builds the server
+npm build # builds the client and the server
 nodemon # only if you have nodemon installed
 ```
-
-## TODO
-- [ ] check if a piece can be moved
 
 # License
 
