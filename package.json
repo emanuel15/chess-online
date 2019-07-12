@@ -29,7 +29,7 @@
     "@types/uuid": "^3.4.5",
     "@types/ws": "^6.0.1",
     "express": "^4.17.1",
-    "pixi.js": "^5.0.4",
+    "pixi.js-legacy": "^5.0.4",
     "uuid": "^3.3.2",
     "ws": "^7.0.1"
   }

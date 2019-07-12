@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+import * as PIXI from 'pixi.js-legacy';
 import { Board } from './board';
 import { Color, PieceKind, PieceDirection } from '../server/shared';
 

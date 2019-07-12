@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+import * as PIXI from 'pixi.js-legacy';
 import { Board } from './board';
 import {
     Color,
@@ -16,6 +16,7 @@ const app = new PIXI.Application({
     backgroundColor: 0x2c2c2c,
     width: window.innerWidth,
     height: window.innerHeight - 4,
+    forceCanvas: true,
 });
 
 document.body.appendChild(app.view);
