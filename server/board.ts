@@ -63,6 +63,8 @@ export default class Board {
 
     private moves = 0;
 
+    public isCheckmate: boolean = false;
+
     constructor() {
         this.createBoard();
         this.resetBoard();
@@ -423,7 +425,6 @@ export default class Board {
                 if (kingCells.length == 0) {
                     if (change) {
                         isCheckmate = true;
-                        alert('CHECKMATITOTS');
                     }
                 }
                 else {
@@ -552,6 +553,8 @@ export default class Board {
             if (result) {
                 let checkState = this.verifyCheck(color == Color.Black ? Color.White : Color.Black, true);
 
+                this.isCheckmate = checkState.isCheckmate;
+
                 // this.printVisualRepresentation();
                 if (move.isCheck) {
                     if (checkState.isInCheck)
@@ -634,7 +637,8 @@ export default class Board {
                         }
                         
                         let checkState = this.verifyCheck(color == Color.Black ? Color.White : Color.Black, true);
-
+                        this.isCheckmate = checkState.isCheckmate;
+                        
                         // this.printVisualRepresentation();
                         if (move.isCheck) {
                             if (checkState.isInCheck)

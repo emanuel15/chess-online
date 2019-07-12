@@ -137,7 +137,12 @@ function initializeGame() {
     });
 
     board.on('checkmate', function() {
+        gameInfo.text = 'You lost!';
         checkInfo.text = 'Checkmate!';
+    });
+
+    board.on('youwon', function() {
+        gameInfo.text = 'You won!';
     });
 
     checkInfo = new PIXI.Text('', {
@@ -195,14 +200,12 @@ function connectToServer() {
                     break;
                 
                 case Events.Color:
-                    console.log(value);
                     board.color = value;
                     board.resetBoard(app);
                     break;
                 
                 case Events.Move:
                     board.validateMove(value);
-                    console.log(value, board.isInCheck);
                     break;
                 
                 case Events.ChangeTurn:
@@ -224,6 +227,11 @@ function connectToServer() {
                         board.setActionsEnabled(false);
                         gameInfo.text = `It's ${board.color == Color.Black ? 'white' : 'black' }'s turn!`;
                     }
+                    break;
+                
+                case Events.EnemyLeave:
+                    gameInfo.text = 'Your opponent abandoned the game, you won!';
+                    board.setActionsEnabled(false);
                     break;
             
                 default:

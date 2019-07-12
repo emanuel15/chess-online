@@ -48,6 +48,22 @@ export default class Match {
     }
 
     leavePlayer(player: Player) {
+        if (this.player1 == player) {
+            if (this.player2) {
+                this.player2.send(this.dataStream
+                    .queue(Events.EnemyLeave)
+                    .output()
+                );
+            }
+        }
+        else {
+            if (this.player1) {
+                this.player1.send(this.dataStream
+                    .queue(Events.EnemyLeave)
+                    .output()
+                );
+            }
+        }
     }
 
     beginMatch() {
@@ -64,7 +80,7 @@ export default class Match {
     }
 
     movePiece(color: Color, moveText: string) {
-        console.log(moveText);
+        // console.log(moveText);
         if (this.board.validateMove(color, moveText)) {
             if (this.player1.color == color) {
                 this.player2.send(this.dataStream
@@ -78,7 +94,10 @@ export default class Match {
                     .output()
                 );
             }
-            this.changeTurn();
+
+            if (!this.board.isCheckmate) {
+                this.changeTurn();
+            }
         }
     }
 

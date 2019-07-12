@@ -446,9 +446,7 @@ export class Board extends PIXI.Sprite {
         }
 
         for (let piece of this.alivePieces[enemyColor]) {
-            // if (piece.kind == PieceKind.King)
-            //     continue;
-            
+
             let cells = piece.getAvailableCells();
 
             // verify how many and which pieces are attacking the king
@@ -486,7 +484,6 @@ export class Board extends PIXI.Sprite {
         let canCapture = false;
         let canCover = false;
 
-        console.log('Is in check: ', isInCheck);
         if (isInCheck) {
 
             // double check, king must move
@@ -498,7 +495,6 @@ export class Board extends PIXI.Sprite {
                 if (kingCells.length == 0) {
                     if (change) {
                         isCheckmate = true;
-                        alert('CHECKMATITOTS');
                     }
                 }
                 else {
@@ -536,8 +532,6 @@ export class Board extends PIXI.Sprite {
                     }
                 }
 
-                // console.log('Can capture: ', canCapture);
-
                 // check if it's possible to cover the check
                 for (let piece of this.alivePieces[color]) {
                     if (piece.kind == PieceKind.King)
@@ -560,28 +554,7 @@ export class Board extends PIXI.Sprite {
                         }
                     }
                 }
-
-                // console.log('Can cover: ', canCover);
-                // console.log('change ', change);
-                // console.log(canCover, canCapture, kingCells.length)
-                // console.log('cond ', !canCover && !canCapture && kingCells.length == 0);
-
-                // if can't cover, can't capture and can't move then it's a checkmate
-                // if (!canCover && !canCapture && kingCells.length == 0) {
-                    // console.log('eaee');
-                    // if (change) {
-                        // isCheckmate = true;
-                    // this.emit('checkmate');
-                        // alert('CHECKMATITOTS 2');
-                        // console.log('checkmate');
-                    // }
-                // }
             }
-
-            // console.log('Attacked cells: ', checkCells);
-            // console.log('Pieces attacking: ', piecesAttacking);
-            // console.log('Near attacked cells: ', nearAttackedCells);
-            // console.log('Available cells: ', kingCells);
         }
 
         if (checkNear) {
@@ -615,13 +588,9 @@ export class Board extends PIXI.Sprite {
                 this.allowedToMove.splice(0, 1);
         }
 
-        console.log('Final: ', isInCheck, canCover, canCapture, kingCells);
         if (isInCheck && !canCover && !canCapture && kingCells.length == 0) {
             isCheckmate = true;
         }
-
-        // console.log('Must move: ', this.kingMustMove);
-        // console.log('Allowed to move: ', this.allowedToMove);
 
         if (change) {
             if (color == this.color)
@@ -1049,6 +1018,7 @@ export class Board extends PIXI.Sprite {
                         if (checkState.isCheckmate) {
                             pgn.isCheck = false;
                             pgn.isCheckmate = true;
+                            this.emit('youwon');
                         }
 
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
@@ -1071,6 +1041,7 @@ export class Board extends PIXI.Sprite {
                         if (checkState.isCheckmate) {
                             pgn.isCheck = false;
                             pgn.isCheckmate = true;
+                            this.emit('youwon');
                         }
 
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
@@ -1096,6 +1067,7 @@ export class Board extends PIXI.Sprite {
                         if (checkState.isCheckmate) {
                             pgn.isCheck = false;
                             pgn.isCheckmate = true;
+                            this.emit('youwon');
                         }
                         
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
@@ -1118,6 +1090,7 @@ export class Board extends PIXI.Sprite {
                         if (checkState.isCheckmate) {
                             pgn.isCheck = false;
                             pgn.isCheckmate = true;
+                            this.emit('youwon');
                         }
 
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
@@ -1137,6 +1110,7 @@ export class Board extends PIXI.Sprite {
         if (checkState.isCheckmate) {
             pgn.isCheck = false;
             pgn.isCheckmate = true;
+            this.emit('youwon');
         }
 
         this.emit('movepiece', PGN.translateInto(this.color, pgn));

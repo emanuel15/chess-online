@@ -47,5 +47,6 @@ wss.on('connection', (socket, request) => {
 
     socket.on('close', (code, reason) => {
         console.log('Connection closed');
+        match.leavePlayer(player);
     });
 });
