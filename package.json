@@ -6,11 +6,11 @@
   "scripts": {
     "watch": "webpack --watch",
     "devserver": "webpack-dev-server --open",
-    "start": "ts-node server/main.ts",
     "build:client": "webpack --mode production",
     "build:server": "tsc --target es5 --outDir dist/ server/main.ts",
     "build": "npm run build:client && npm run build:server",
-    "start:prod": "node dist/main.js"
+    "start:dev": "ts-node server/main.ts",
+    "start": "node dist/main.js"
   },
   "keywords": [],
   "author": "emanuel15",
