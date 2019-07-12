@@ -66,15 +66,27 @@ export interface PGNObject {
     hasCapture: boolean;
     isPawnPromotion: boolean;
     isCheck: boolean;
-    isCheckMate: boolean;
+    isCheckmate: boolean;
 }
 
 export const PGN = {
     translateInto(color: Color, move: PGNObject): string {
         if (move.isKingSideCastle) {
+            if (move.isCheck) {
+                return 'O-O+';
+            }
+            else if (move.isCheckmate) {
+                return 'O-O#';
+            }
             return 'O-O';
         }
         else if (move.isQueenSideCastle) {
+            if (move.isCheck) {
+                return 'O-O-O+';
+            }
+            else if (move.isCheckmate) {
+                return 'O-O-O#';
+            }
             return 'O-O-O';
         }
     
@@ -106,7 +118,7 @@ export const PGN = {
         if (move.isCheck) {
             output.push('+');
         }
-        else if (move.isCheckMate) {
+        else if (move.isCheckmate) {
             output.push('#');
         }
     
@@ -136,16 +148,14 @@ export const PGN = {
             hasCapture: false,
             isPawnPromotion: false,
             isCheck: false,
-            isCheckMate: false
+            isCheckmate: false
         };
-    
-        if (moveText == 'O-O') {
-            output.isKingSideCastle = true;
-            return output;
-        }
-        else if (moveText == 'O-O-O') {
+        
+        if (moveText.substr(0, 5) == 'O-O-O') {
             output.isQueenSideCastle = true;
-            return output;
+        }
+        else if (moveText.substr(0, 3) == 'O-O') {
+            output.isKingSideCastle = true;
         }
         else {
             output.pieceKind = <PieceKind>moveText[0];
@@ -167,16 +177,16 @@ export const PGN = {
                 output.isPawnPromotion = true;
                 output.promotionKind = <PieceKind>moveText[6];
             }
-    
-            if (moveText[moveText.length - 1] == '+') {
-                output.isCheck = true;
-            }
-            else if (moveText[moveText.length - 1] == '#') {
-                output.isCheckMate = true;
-            }
-    
-            return output;
         }
+
+        if (moveText[moveText.length - 1] == '+') {
+            output.isCheck = true;
+        }
+        else if (moveText[moveText.length - 1] == '#') {
+            output.isCheckmate = true;
+        }
+
+        return output;
     }
 }
 

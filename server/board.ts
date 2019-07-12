@@ -1,6 +1,14 @@
 import {Piece} from './piece';
 import { Color, PGN, PieceKind, PieceDirection } from './shared';
 
+interface CheckInfo {
+    available: number[][];
+    isInCheck: boolean;
+    isCheckmate: boolean;
+    piecesAttacking: Piece[];
+    checkCells: number[][];
+}
+
 interface PieceList {
     leftRook: Piece;
     leftKnight: Piece;
@@ -48,6 +56,10 @@ export default class Board {
 
     public canKingCastle: boolean = false;
     public canQueenCastle: boolean = false;
+
+    public isInCheck: boolean = false;
+    private kingMustMove: boolean = false;
+    private allowedToMove: number[] = [];
 
     private moves = 0;
 
@@ -180,8 +192,10 @@ export default class Board {
 
     setPieceIn(row: number, col: number, piece: Piece) {
         this.cells[row][col].piece = piece;
-        piece.row = row;
-        piece.col = col;
+        if (piece) {
+            piece.row = row;
+            piece.col = col;
+        }
     }
 
     changePieceKind(piece: Piece, newKind: PieceKind) {
@@ -348,20 +362,19 @@ export default class Board {
         }
     }
 
-    verifyCheck(color: Color): any {
+    verifyCheck(color: Color, checkNear: boolean = false, change: boolean = true): CheckInfo {
         let enemyColor = color == Color.White ? Color.Black : Color.White;
         let king = this.pieces[color].king;
         let kingCells = king.getAvailableCells();
 
-        let nearAttackedCells: number[][] = [];
         let checkCells: number[][] = [];
-
         let piecesAttacking: Piece[] = [];
 
+        if (change) {
+            this.allowedToMove.splice(0, this.allowedToMove.length);
+        }
+
         for (let piece of this.alivePieces[enemyColor]) {
-            if (piece.kind == PieceKind.King)
-                continue;
-            
             let cells = piece.getAvailableCells();
 
             // verify how many and which pieces are attacking the king
@@ -392,158 +405,185 @@ export default class Board {
                     piecesAttacking.push(piece);
                 }
             }
-
-            // verify which cells the king can't go to
-            for (let j = 0; j < kingCells.length; j++) {
-                let [kingRow, kingCol] = kingCells[j];
-                for (let u = 0; u < cells.length; u++) {
-                    let [attackRow, attackCol] = cells[u];
-                    if (kingRow == attackRow && kingCol == attackCol) {
-                        nearAttackedCells.push([kingRow, kingCol]);
-                    }
-                }
-            }
         }
 
         let isInCheck = piecesAttacking.length > 0;
         let isCheckmate = false;
+        let canCapture = false;
+        let canCover = false;
 
-        // console.log('Is in check: ', isInCheck);
         if (isInCheck) {
-            // this.emit('check');
-
-            // remove the cells that are being attacked from the list the king can go to
-            for (let i = kingCells.length - 1; i >= 0; i--) {
-                let [kingRow, kingCol] = kingCells[i];
-                for (let j = 0; j < nearAttackedCells.length; j++) {
-                    let [checkRow, checkCol] = nearAttackedCells[j];
-                    if (kingRow == checkRow && kingCol == checkCol) {
-                        kingCells.splice(i, 1);
-                    }
-                }
-            }
 
             // double check, king must move
             if (piecesAttacking.length > 1) {
+                if (change)
+                    this.kingMustMove = true;
+                
                 // no cells available, it's a checkmate
                 if (kingCells.length == 0) {
-                    isCheckmate = true;
-                    // console.log('checkmate');
+                    if (change) {
+                        isCheckmate = true;
+                        alert('CHECKMATITOTS');
+                    }
+                }
+                else {
+                    if (change)
+                        this.allowedToMove.push(this.alivePieces[color].indexOf(king));
                 }
             }
             else {
+                if (change) {
+                    this.kingMustMove = false;
+                    this.allowedToMove.push(this.alivePieces[color].indexOf(king));
+                }
+                
                 let attacker = piecesAttacking[0];
 
-                // checks if the attacking piece can be captured by the king
-                for (let i = 0; i < kingCells.length; i++) {
-                    let [kingRow, kingCol] = kingCells[i];
-                    // piece is near the king
-                    if (attacker.row == kingRow && attacker.col == kingCol) {
-                        for (let piece of this.alivePieces[enemyColor]) {
-                            if (piece.kind == PieceKind.King || piece === attacker)
-                                continue;
-                            
-                            let cells = piece.getAvailableCells(true);
-                            let [lastRow, lastCol] = cells[cells.length - 1];
+                // check if the attacker can be captured by other piece
+                for (let piece of this.alivePieces[color]) {
+                    if (piece.kind == PieceKind.King)
+                        continue;
+                    
+                    let cells = piece.getAvailableCells();
+                    for (let i = 0; i < cells.length; i++) {
+                        let [cellRow, cellCol] = cells[i];
 
-                            if (lastRow == attacker.row && lastCol == attacker.col) {
-                                // enemy piece is defending the attacker,
-                                // the king can move or a friendly piece can capture the attacker
-                                kingCells.splice(i, 1);
-                                // console.log('Defensor: ', piece.kind);
-                                break;
+                        // friendly piece can capture the attacker
+                        if (cellRow == attacker.row && cellCol == attacker.col) {
+                            if (change) {
+                                let index = this.alivePieces[color].indexOf(piece);
+                                if (this.allowedToMove.indexOf(index) == -1) {
+                                    this.allowedToMove.push(index);
+                                }
                             }
+                            canCapture = true;
                         }
-                        break;
                     }
                 }
 
-                // if king can't move
-                if (kingCells.length == 0) {
-
-                    // check if the attacker can be captured
-                    let canCapture = false;
-
-                    for (let piece of this.alivePieces[color]) {
-                        if (piece.kind == PieceKind.King)
-                            continue;
-                        
-                        let cells = piece.getAvailableCells();
-                        for (let i = 0; i < cells.length; i++) {
-                            let [cellRow, cellCol] = cells[i];
-
-                            // friendly piece can capture the attacker
-                            if (cellRow == attacker.row && cellCol == attacker.col) {
-                                canCapture = true;
-                                break;
-                            }
-                        }
-
-                        if (canCapture)
-                            break;
-                    }
-
-                    // console.log('Can capture: ', canCapture);
-
-                    // neither the king nor a friendly piece can capture the attacker
-                    if (!canCapture) {
-                        // check if it's possible to cover the check
-                        let canCover = false;
-
-                        for (let piece of this.alivePieces[color]) {
-                            if (piece.kind == PieceKind.King)
-                                continue;
-                            
-                            let cells = piece.getAvailableCells();
-                            if (cells.length > 0) {
-                                for (let i = 0; i < cells.length; i++) {
-                                    let [row, col] = cells[i];
-                                    for (let j = 0; j < checkCells.length; j++) {
-                                        let [attackRow, attackCol] = checkCells[j];
-                                        if (attackRow == row && attackCol == col) {
-                                            canCover = true;
-                                            break;
-                                        }
+                // check if it's possible to cover the check
+                for (let piece of this.alivePieces[color]) {
+                    if (piece.kind == PieceKind.King)
+                        continue;
+                    
+                    let cells = piece.getAvailableCells();
+                    for (let i = 0; i < cells.length; i++) {
+                        let [row, col] = cells[i];
+                        for (let j = 0; j < checkCells.length; j++) {
+                            let [attackRow, attackCol] = checkCells[j];
+                            if (attackRow == row && attackCol == col) {
+                                if (change) {
+                                    let index = this.alivePieces[color].indexOf(piece);
+                                    if (this.allowedToMove.indexOf(index) == -1) {
+                                        this.allowedToMove.push(index);
                                     }
                                 }
+                                canCover = true;
                             }
                         }
-
-                        // console.log('Can cover: ', canCover);
-                        // if can't cover it's a CHECKMATE
-                        if (!canCover)
-                            isCheckmate = true;
-                            // this.emit('checkmate');
-                            // console.log('checkmate');
                     }
                 }
             }
+        }
 
-            // console.log('Attacked cells: ', checkCells);
-            // console.log('Pieces attacking: ', piecesAttacking);
-            // console.log('Near attacked cells: ', nearAttackedCells);
-            // console.log('Available cells: ', kingCells);
+        if (checkNear) {
+            let oldRow = king.row;
+            let oldCol = king.col;
+
+            for (let i = kingCells.length - 1; i >= 0; i--) {
+                let [kingRow, kingCol] = kingCells[i];
+
+                this.cells[oldRow][oldCol].piece = null;
+
+                let oldPiece = this.cells[kingRow][kingCol].piece;
+                this.setPieceIn(kingRow, kingCol, king);
+
+                let checkInfo = this.verifyCheck(color, false, false);
+
+                if (checkInfo.isInCheck || checkInfo.isCheckmate) {
+                    kingCells.splice(i, 1);
+                }
+
+                this.cells[kingRow][kingCol].piece = null;
+                this.setPieceIn(oldRow, oldCol, king);
+
+                if (oldPiece)
+                    this.setPieceIn(kingRow, kingCol, oldPiece);
+            }
+        }
+
+        if (change) {
+            if (kingCells.length == 0)
+                this.allowedToMove.splice(0, 1);
+        }
+
+        if (isInCheck && !canCover && !canCapture && kingCells.length == 0) {
+            isCheckmate = true;
         }
 
         return {
             available: kingCells,
+            checkCells: checkCells,
             isInCheck: isInCheck,
             isCheckmate: isCheckmate,
+            piecesAttacking: piecesAttacking
+        }
+    }
+
+    printVisualRepresentation() {
+        for (let row = 0; row < this.cells.length; row++) {
+            let str: string[] = [];
+            for (let col = 0; col < this.cells[row].length; col++) {
+                if (this.cells[row][col].piece)
+                    str.push(this.cells[row][col].piece.kind);
+                else
+                    str.push(' ');
+            }
+            console.log(`[${str.join('|')}]`);
         }
     }
 
     validateMove(color: Color, moveText: string): boolean {
         let move = PGN.translateFrom(color, moveText);
 
-        if (moveText == 'O-O' || moveText == 'O-O-O')
-            return this.validateCastles(color, moveText);
+        if (move.isKingSideCastle || move.isQueenSideCastle) {
+            let result = this.validateCastles(color, moveText);
+
+            if (result) {
+                let checkState = this.verifyCheck(color == Color.Black ? Color.White : Color.Black, true);
+
+                // this.printVisualRepresentation();
+                if (move.isCheck) {
+                    if (checkState.isInCheck)
+                        return true;
+                    
+                    return false;
+                }
+                else if (move.isCheckmate) {
+                    if (checkState.isCheckmate)
+                        return true;
+                    return false;
+                }
+
+                return true;
+            }
+            return false;
+        }
         
         if (!this.isValidCell(move.fromRow, move.fromCol) || !this.isValidCell(move.fromRow, move.fromCol))
             return false;
 
         let piece = this.cells[move.fromRow][move.fromCol].piece;
         if (piece) {
-            let cells = piece.getAvailableCells();
+            let cells;
+
+            if (piece.kind == PieceKind.King) {
+                let checkState = this.verifyCheck(piece.isWhite ? Color.White : Color.Black);
+                cells = checkState.available;
+            }
+            else {
+                cells = piece.getAvailableCells();
+            }
             
             if (piece.kind == move.pieceKind) {
                 if (piece.kind == PieceKind.Pawn) {
@@ -567,6 +607,8 @@ export default class Board {
                 for (let i = 0; i < cells.length; i++) {
                     let cell = cells[i];
                     if (move.toRow == cell[0] && move.toCol == cell[1]) {
+                        let oldPiece = this.cells[move.toRow][move.toCol].piece;
+
                         if (move.isPawnPromotion) {
                             if (move.pieceKind == PieceKind.Pawn && move.promotionKind) {
                                 this.changePieceKind(piece, move.promotionKind);
@@ -591,21 +633,30 @@ export default class Board {
                             this.clearPassants();
                         }
                         
-                        let checkState = this.verifyCheck(color == Color.Black ? Color.White : Color.Black);
-                        console.log(checkState.isCheckmate, move.isCheckMate);
-                        if (move.isCheck && checkState.isInCheck) {
-                            return true;
+                        let checkState = this.verifyCheck(color == Color.Black ? Color.White : Color.Black, true);
+
+                        // this.printVisualRepresentation();
+                        if (move.isCheck) {
+                            if (checkState.isInCheck)
+                                return true;
+
+                            // if the move is invalid, return things back
+                            this.setPieceIn(move.fromRow, move.fromCol, piece);
+                            this.setPieceIn(move.toRow, move.toCol, oldPiece);
+                            
+                            return false;
                         }
-                        else if (move.isCheckMate && checkState.isCheckmate) {
-                            console.log('mate com tomates');
-                            return true;
+                        else if (move.isCheckmate) {
+                            if (checkState.isCheckmate)
+                                return true;
+                            
+                            // if the move is invalid, return things back
+                            this.setPieceIn(move.fromRow, move.fromCol, piece);
+                            this.setPieceIn(move.toRow, move.toCol, oldPiece);
+                            
+                            return false;
                         }
-                        else {
-                            move.isCheck = false;
-                            move.isCheckMate = false;
-                            moveText = PGN.translateInto(color, move);
-                        }
-                        
+
                         return true;
                     }
                 }

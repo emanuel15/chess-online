@@ -60,10 +60,19 @@ function buildPromotionWindow() {
     for (let i = 0; i < promotionSprites.length; i++) {
         let sprite = promotionSprites[i];
         sprite.anchor.set(0.5, 0.5);
+        sprite.alpha = 0.5;
         sprite.buttonMode = true;
         sprite.interactive = true;
         promotionWindow.addChild(sprite);
         sprite.x = -totalWidth / 2 + i * sprite.width + sprite.width / 2;
+
+        sprite.on('mouseover', function() {
+            sprite.alpha = 1.0;
+        });
+
+        sprite.on('mouseout', function() {
+            sprite.alpha = 0.5;
+        });
     }
 
     let promotions = [PieceKind.Queen, PieceKind.Knight, PieceKind.Bishop, PieceKind.Rook];
@@ -158,7 +167,7 @@ function initializeGame() {
 
     document.addEventListener('keypress', function(event) {
         if (event.key == 'c') {
-            board.verifyCheck();
+            board.verifyCheck(board.color, true);
         }
     });
 
@@ -192,8 +201,8 @@ function connectToServer() {
                     break;
                 
                 case Events.Move:
-                    console.log(value);
                     board.validateMove(value);
+                    console.log(value, board.isInCheck);
                     break;
                 
                 case Events.ChangeTurn:
@@ -206,7 +215,9 @@ function connectToServer() {
                     }
 
                     if (turnColor == board.color) {
-                        board.setActionsEnabled(true);
+                        if (!board.isInCheck) {
+                            board.setActionsEnabled(true);
+                        }
                         gameInfo.text = 'It\'s your turn!';
                     }
                     else {

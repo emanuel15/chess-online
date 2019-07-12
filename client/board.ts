@@ -12,6 +12,14 @@ import {
     CELL_HEIGHT
 } from '../server/shared';
 
+interface CheckInfo {
+    available: number[][];
+    isInCheck: boolean;
+    isCheckmate: boolean;
+    checkCells: number[][];
+    piecesAttacking: Piece[];
+}
+
 interface PieceList {
     leftRook: Piece;
     leftKnight: Piece;
@@ -48,6 +56,7 @@ interface Cell {
     isAvailable: boolean;
     isAttacked: boolean;
     isSelected: boolean;
+    isHighlighted: boolean;
     color: number;
     piece: Piece;
     graphics: PIXI.Graphics;
@@ -55,13 +64,14 @@ interface Cell {
 
 export class Board extends PIXI.Sprite {
 
-    private cells: Cell[][] = [];
+    protected cells: Cell[][] = [];
 
     private pieces: Pieces;
     private alivePieces: Pool;
 
     private availableCells: number[][] = [];
     private attackedCells: number[][] = [];
+    private highlightedCells: number[][] = [];
     private selectedCell: Cell;
 
     private letters: PIXI.Text[] = [];
@@ -70,6 +80,10 @@ export class Board extends PIXI.Sprite {
 
     public canKingCastle: boolean = false;
     public canQueenCastle: boolean = false;
+
+    public isInCheck: boolean = false;
+    private kingMustMove: boolean = false;
+    private allowedToMove: number[] = [];
 
     public moves = -1;
 
@@ -81,10 +95,12 @@ export class Board extends PIXI.Sprite {
             this.cells.push([]);
             for (let col = 0; col < 8; col++) {
                 this.cells[row].push({
-                    color: switchColor ? 0xa76626 : 0xc2bdb9,
+                    // color: switchColor ? 0xa76626 : 0xc2bdb9,
+                    color: switchColor ? 0xc88340 : 0xFFFFFF,
                     isAvailable: false,
                     isAttacked: false,
                     isSelected: false,
+                    isHighlighted: false,
                     piece: null,
                     graphics: new PIXI.Graphics()
                 });
@@ -95,7 +111,8 @@ export class Board extends PIXI.Sprite {
                 let cell = this.cells[row][col];
 
                 cell.graphics
-                    .beginFill(cell.color)
+                    // .beginFill(cell.color)
+                    .beginFill(0xc2bdb9)
                         .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                     .endFill();
                 
@@ -222,88 +239,68 @@ export class Board extends PIXI.Sprite {
             }
         }
 
+        let myRow = 7;
+        let enemyRow = 0;
+
+        let myPieces = this.pieces[this.color];
+        let enemyPieces = this.pieces[this.enemyColor];
+
+        this.setPieceIn(myRow, 0, myPieces.leftRook);
+        this.setPieceIn(myRow, 1, myPieces.leftKnight);
+        this.setPieceIn(myRow, 2, myPieces.leftBishop);
+        this.setPieceIn(myRow, 5, myPieces.rightBishop);
+        this.setPieceIn(myRow, 6, myPieces.rightKnight);
+        this.setPieceIn(myRow, 7, myPieces.rightRook);
+
+        this.addChild(myPieces.leftRook, myPieces.leftKnight, myPieces.leftBishop, myPieces.queen, myPieces.king, myPieces.rightBishop, myPieces.rightKnight, myPieces.rightRook);
+
+        this.setPieceIn(enemyRow, 0, enemyPieces.leftRook);
+        this.setPieceIn(enemyRow, 1, enemyPieces.leftKnight);
+        this.setPieceIn(enemyRow, 2, enemyPieces.leftBishop);
+        this.setPieceIn(enemyRow, 5, enemyPieces.rightBishop);
+        this.setPieceIn(enemyRow, 6, enemyPieces.rightKnight);
+        this.setPieceIn(enemyRow, 7, enemyPieces.rightRook);
+
+        this.addChild(enemyPieces.leftRook, enemyPieces.leftKnight, enemyPieces.leftBishop, enemyPieces.queen, enemyPieces.king, enemyPieces.rightBishop, enemyPieces.rightKnight, enemyPieces.rightRook);
+
         if (this.color == Color.Black) {
-            let pieces = this.pieces.black;
-
-            this.setPieceIn(7, 0, pieces.leftRook);
-            this.setPieceIn(7, 1, pieces.leftKnight);
-            this.setPieceIn(7, 2, pieces.leftBishop);
-            this.setPieceIn(7, 3, pieces.king);
-            this.setPieceIn(7, 4, pieces.queen);
-            this.setPieceIn(7, 5, pieces.rightBishop);
-            this.setPieceIn(7, 6, pieces.rightKnight);
-            this.setPieceIn(7, 7, pieces.rightRook);
-
-            this.addChild(pieces.leftRook, pieces.leftKnight, pieces.leftBishop, pieces.queen, pieces.king, pieces.rightBishop, pieces.rightKnight, pieces.rightRook);
-
-            pieces = this.pieces.white;
-
-            this.setPieceIn(0, 0, pieces.leftRook);
-            this.setPieceIn(0, 1, pieces.leftKnight);
-            this.setPieceIn(0, 2, pieces.leftBishop);
-            this.setPieceIn(0, 3, pieces.king);
-            this.setPieceIn(0, 4, pieces.queen);
-            this.setPieceIn(0, 5, pieces.rightBishop);
-            this.setPieceIn(0, 6, pieces.rightKnight);
-            this.setPieceIn(0, 7, pieces.rightRook);
-
-            this.addChild(pieces.leftRook, pieces.leftKnight, pieces.leftBishop, pieces.queen, pieces.king, pieces.rightBishop, pieces.rightKnight, pieces.rightRook);
-
-            for (let i = 0; i < 8; i++) {
-                let piece = this.pieces.black["pawn" + i];
-                piece.directions = PieceDirection.Up;
-                this.addChild(piece);
-                this.setPieceIn(6, i, piece);
-            }
-
-            for (let i = 0; i < 8; i++) {
-                let piece = this.pieces.white["pawn" + i];
-                piece.directions = PieceDirection.Down;
-                this.addChild(piece);
-                this.setPieceIn(1, i, piece);
-            }
+            this.setPieceIn(myRow, 3, myPieces.king);
+            this.setPieceIn(myRow, 4, myPieces.queen);
+            this.setPieceIn(enemyRow, 3, enemyPieces.king);
+            this.setPieceIn(enemyRow, 4, enemyPieces.queen);
         }
         else {
-            let pieces = this.pieces.white;
+            this.setPieceIn(myRow, 3, myPieces.queen);
+            this.setPieceIn(myRow, 4, myPieces.king);
+            this.setPieceIn(enemyRow, 3, enemyPieces.queen);
+            this.setPieceIn(enemyRow, 4, enemyPieces.king);
+        }
 
-            this.setPieceIn(7, 0, pieces.leftRook);
-            this.setPieceIn(7, 1, pieces.leftKnight);
-            this.setPieceIn(7, 2, pieces.leftBishop);
-            this.setPieceIn(7, 3, pieces.queen);
-            this.setPieceIn(7, 4, pieces.king);
-            this.setPieceIn(7, 5, pieces.rightBishop);
-            this.setPieceIn(7, 6, pieces.rightKnight);
-            this.setPieceIn(7, 7, pieces.rightRook);
+        for (let i = 0; i < 8; i++) {
+            let piece = this.pieces.black["pawn" + i];
+            this.addChild(piece);
 
-            this.addChild(pieces.leftRook, pieces.leftKnight, pieces.leftBishop, pieces.queen, pieces.king, pieces.rightBishop, pieces.rightKnight, pieces.rightRook);
-
-            pieces = this.pieces.black;
-
-            this.setPieceIn(0, 0, pieces.leftRook);
-            this.setPieceIn(0, 1, pieces.leftKnight);
-            this.setPieceIn(0, 2, pieces.leftBishop);
-            this.setPieceIn(0, 3, pieces.queen);
-            this.setPieceIn(0, 4, pieces.king);
-            this.setPieceIn(0, 5, pieces.rightBishop);
-            this.setPieceIn(0, 6, pieces.rightKnight);
-            this.setPieceIn(0, 7, pieces.rightRook);
-
-            this.addChild(pieces.leftRook, pieces.leftKnight, pieces.leftBishop, pieces.queen, pieces.king, pieces.rightBishop, pieces.rightKnight, pieces.rightRook);
-
-            for (let i = 0; i < 8; i++) {
-                let piece = this.pieces.white["pawn" + i];
-                piece.directions = PieceDirection.Up;
-                piece.hasMoved = false;
-                this.addChild(piece);
+            if (this.color == Color.Black) {
                 this.setPieceIn(6, i, piece);
+                piece.directions = PieceDirection.Up;
             }
-
-            for (let i = 0; i < 8; i++) {
-                let piece = this.pieces.black["pawn" + i];
-                piece.directions = PieceDirection.Down;
-                piece.hasMoved = false;
-                this.addChild(piece);
+            else {
                 this.setPieceIn(1, i, piece);
+                piece.directions = PieceDirection.Down;
+            }
+        }
+
+        for (let i = 0; i < 8; i++) {
+            let piece = this.pieces.white["pawn" + i];
+            this.addChild(piece);
+
+            if (this.color == Color.White) {
+                this.setPieceIn(6, i, piece);
+                piece.directions = PieceDirection.Up;
+            }
+            else {
+                this.setPieceIn(1, i, piece);
+                piece.directions = PieceDirection.Down;
             }
         }
 
@@ -349,13 +346,23 @@ export class Board extends PIXI.Sprite {
                     cell.graphics.tint = 0xFF0000;
                 }
                 else if (cell.isAvailable) {
-                    cell.graphics.tint = 0x42fe42;
+                    if (cell.color != 0xFFFFFF)
+                        cell.graphics.tint = 0x00ad00;
+                    else
+                        cell.graphics.tint = 0x2fff2f;
                 }
                 else if (cell.isSelected) {
                     cell.graphics.tint = 0x9662f6;
                 }
+                else if (cell.isHighlighted) {
+                    if (cell.color != 0xFFFFFF)
+                        cell.graphics.tint = 0xc0b100;
+                    else
+                        cell.graphics.tint = 0xfeef42;
+                }
                 else {
-                    cell.graphics.tint = 0xFFFFFF;
+                    // cell.graphics.tint = 0xFFFFFF;
+                    cell.graphics.tint = cell.color;
                 }
             }
         }
@@ -374,6 +381,20 @@ export class Board extends PIXI.Sprite {
         for (let piece of this.alivePieces[this.color]) {
             piece.interactive = isEnabled;
             piece.buttonMode = isEnabled;
+        }
+    }
+
+    private enableAllowedPieces() {
+        for (let i = 0; i < this.alivePieces[this.color].length; i++) {
+            let piece = this.alivePieces[this.color][i];
+            if (this.allowedToMove.indexOf(i) == -1) {
+                piece.interactive = false;
+                piece.buttonMode = false;
+            }
+            else {
+                piece.interactive = true;
+                piece.buttonMode = true;
+            }
         }
     }
 
@@ -412,19 +433,21 @@ export class Board extends PIXI.Sprite {
         }
     }
 
-    verifyCheck(color: Color = this.color): any {
+    verifyCheck(color: Color = this.color, checkNear: boolean = false, change: boolean = true): CheckInfo {
         let enemyColor = color == Color.White ? Color.Black : Color.White;
         let king = this.pieces[color].king;
         let kingCells = king.getAvailableCells();
 
-        let nearAttackedCells: number[][] = [];
         let checkCells: number[][] = [];
-
         let piecesAttacking: Piece[] = [];
 
+        if (change) {
+            this.allowedToMove.splice(0, this.allowedToMove.length);
+        }
+
         for (let piece of this.alivePieces[enemyColor]) {
-            if (piece.kind == PieceKind.King)
-                continue;
+            // if (piece.kind == PieceKind.King)
+            //     continue;
             
             let cells = piece.getAvailableCells();
 
@@ -456,148 +479,168 @@ export class Board extends PIXI.Sprite {
                     piecesAttacking.push(piece);
                 }
             }
-
-            // verify which cells the king can't go to
-            for (let j = 0; j < kingCells.length; j++) {
-                let [kingRow, kingCol] = kingCells[j];
-                for (let u = 0; u < cells.length; u++) {
-                    let [attackRow, attackCol] = cells[u];
-                    if (kingRow == attackRow && kingCol == attackCol) {
-                        nearAttackedCells.push([kingRow, kingCol]);
-                    }
-                }
-            }
         }
 
         let isInCheck = piecesAttacking.length > 0;
         let isCheckmate = false;
+        let canCapture = false;
+        let canCover = false;
 
         console.log('Is in check: ', isInCheck);
         if (isInCheck) {
-            // this.emit('check');
-
-            // remove the cells that are being attacked from the list the king can go tov
-            for (let i = kingCells.length - 1; i >= 0; i--) {
-                let [kingRow, kingCol] = kingCells[i];
-                for (let j = 0; j < nearAttackedCells.length; j++) {
-                    let [checkRow, checkCol] = nearAttackedCells[j];
-                    if (kingRow == checkRow && kingCol == checkCol) {
-                        kingCells.splice(i, 1);
-                    }
-                }
-            }
 
             // double check, king must move
             if (piecesAttacking.length > 1) {
+                if (change)
+                    this.kingMustMove = true;
+                
                 // no cells available, it's a checkmate
                 if (kingCells.length == 0) {
-                    isCheckmate = true;
-                    // console.log('checkmate');
+                    if (change) {
+                        isCheckmate = true;
+                        alert('CHECKMATITOTS');
+                    }
+                }
+                else {
+                    if (change)
+                        this.allowedToMove.push(this.alivePieces[color].indexOf(king));
                 }
             }
             else {
+                if (change) {
+                    this.kingMustMove = false;
+                    this.allowedToMove.push(this.alivePieces[color].indexOf(king));
+                }
+                
                 let attacker = piecesAttacking[0];
 
-                // checks if the attacking piece can be captured by the king
-                for (let i = 0; i < kingCells.length; i++) {
-                    let [kingRow, kingCol] = kingCells[i];
-                    // piece is near the king
-                    if (attacker.row == kingRow && attacker.col == kingCol) {
-                        for (let piece of this.alivePieces[enemyColor]) {
-                            if (piece.kind == PieceKind.King || piece === attacker)
-                                continue;
-                            
-                            let cells = piece.getAvailableCells(true);
-                            let [lastRow, lastCol] = cells[cells.length - 1];
+                // check if the attacker can be captured by other piece
+                for (let piece of this.alivePieces[color]) {
+                    if (piece.kind == PieceKind.King)
+                        continue;
+                    
+                    let cells = piece.getAvailableCells();
+                    for (let i = 0; i < cells.length; i++) {
+                        let [cellRow, cellCol] = cells[i];
 
-                            if (lastRow == attacker.row && lastCol == attacker.col) {
-                                // enemy piece is defending the attacker,
-                                // the king can move or a friendly piece can capture the attacker
-                                kingCells.splice(i, 1);
-                                // console.log('Defensor: ', piece.kind);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                }
-
-                // if king can't move
-                if (kingCells.length == 0) {
-
-                    // check if the attacker can be captured
-                    let canCapture = false;
-
-                    for (let piece of this.alivePieces[color]) {
-                        if (piece.kind == PieceKind.King)
-                            continue;
-                        
-                        let cells = piece.getAvailableCells();
-                        for (let i = 0; i < cells.length; i++) {
-                            let [cellRow, cellCol] = cells[i];
-
-                            // friendly piece can capture the attacker
-                            if (cellRow == attacker.row && cellCol == attacker.col) {
-                                canCapture = true;
-                                break;
-                            }
-                        }
-
-                        if (canCapture)
-                            break;
-                    }
-
-                    console.log('Can capture: ', canCapture);
-
-                    // neither the king nor a friendly piece can capture the attacker
-                    if (!canCapture) {
-                        // check if it's possible to cover the check
-                        let canCover = false;
-
-                        for (let piece of this.alivePieces[color]) {
-                            if (piece.kind == PieceKind.King)
-                                continue;
-                            
-                            let cells = piece.getAvailableCells();
-                            if (cells.length > 0) {
-                                for (let i = 0; i < cells.length; i++) {
-                                    let [row, col] = cells[i];
-                                    for (let j = 0; j < checkCells.length; j++) {
-                                        let [attackRow, attackCol] = checkCells[j];
-                                        if (attackRow == row && attackCol == col) {
-                                            canCover = true;
-                                            break;
-                                        }
-                                    }
+                        // friendly piece can capture the attacker
+                        if (cellRow == attacker.row && cellCol == attacker.col) {
+                            if (change) {
+                                let index = this.alivePieces[color].indexOf(piece);
+                                if (this.allowedToMove.indexOf(index) == -1) {
+                                    this.allowedToMove.push(index);
                                 }
                             }
+                            canCapture = true;
                         }
-
-                        console.log('Can cover: ', canCover);
-                        // if can't cover it's a CHECKMATE
-                        if (!canCover)
-                            isCheckmate = true;
-                            // this.emit('checkmate');
-                            // console.log('checkmate');
                     }
                 }
+
+                // console.log('Can capture: ', canCapture);
+
+                // check if it's possible to cover the check
+                for (let piece of this.alivePieces[color]) {
+                    if (piece.kind == PieceKind.King)
+                        continue;
+                    
+                    let cells = piece.getAvailableCells();
+                    for (let i = 0; i < cells.length; i++) {
+                        let [row, col] = cells[i];
+                        for (let j = 0; j < checkCells.length; j++) {
+                            let [attackRow, attackCol] = checkCells[j];
+                            if (attackRow == row && attackCol == col) {
+                                if (change) {
+                                    let index = this.alivePieces[color].indexOf(piece);
+                                    if (this.allowedToMove.indexOf(index) == -1) {
+                                        this.allowedToMove.push(index);
+                                    }
+                                }
+                                canCover = true;
+                            }
+                        }
+                    }
+                }
+
+                // console.log('Can cover: ', canCover);
+                // console.log('change ', change);
+                // console.log(canCover, canCapture, kingCells.length)
+                // console.log('cond ', !canCover && !canCapture && kingCells.length == 0);
+
+                // if can't cover, can't capture and can't move then it's a checkmate
+                // if (!canCover && !canCapture && kingCells.length == 0) {
+                    // console.log('eaee');
+                    // if (change) {
+                        // isCheckmate = true;
+                    // this.emit('checkmate');
+                        // alert('CHECKMATITOTS 2');
+                        // console.log('checkmate');
+                    // }
+                // }
             }
 
-            console.log('Attacked cells: ', checkCells);
-            console.log('Pieces attacking: ', piecesAttacking);
-            console.log('Near attacked cells: ', nearAttackedCells);
-            console.log('Available cells: ', kingCells);
+            // console.log('Attacked cells: ', checkCells);
+            // console.log('Pieces attacking: ', piecesAttacking);
+            // console.log('Near attacked cells: ', nearAttackedCells);
+            // console.log('Available cells: ', kingCells);
+        }
+
+        if (checkNear) {
+            let oldRow = king.row;
+            let oldCol = king.col;
+
+            for (let i = kingCells.length - 1; i >= 0; i--) {
+                let [kingRow, kingCol] = kingCells[i];
+
+                this.cells[oldRow][oldCol].piece = null;
+
+                let oldPiece = this.cells[kingRow][kingCol].piece;
+                this.setPieceIn(kingRow, kingCol, king);
+
+                let checkInfo = this.verifyCheck(color, false, false);
+
+                if (checkInfo.isInCheck || checkInfo.isCheckmate) {
+                    kingCells.splice(i, 1);
+                }
+
+                this.cells[kingRow][kingCol].piece = null;
+                this.setPieceIn(oldRow, oldCol, king);
+
+                if (oldPiece)
+                    this.setPieceIn(kingRow, kingCol, oldPiece);
+            }
+        }
+
+        if (change) {
+            if (kingCells.length == 0)
+                this.allowedToMove.splice(0, 1);
+        }
+
+        console.log('Final: ', isInCheck, canCover, canCapture, kingCells);
+        if (isInCheck && !canCover && !canCapture && kingCells.length == 0) {
+            isCheckmate = true;
+        }
+
+        // console.log('Must move: ', this.kingMustMove);
+        // console.log('Allowed to move: ', this.allowedToMove);
+
+        if (change) {
+            if (color == this.color)
+                this.isInCheck = isInCheck;
         }
 
         return {
             available: kingCells,
+            checkCells: checkCells,
             isInCheck: isInCheck,
             isCheckmate: isCheckmate,
+            piecesAttacking: piecesAttacking
         }
     }
 
     validateMove(moveText: string) {
         let move = PGN.translateFrom(this.color == Color.White ? Color.Black : Color.White, moveText);
+
+        this.clearHighlightedCells();
 
         if (move.isKingSideCastle) {
             if (this.color == Color.Black) {
@@ -608,6 +651,12 @@ export class Board extends PIXI.Sprite {
                     this.cells[leftRook.row][leftRook.col].isSelected = null;
                     this.cells[king.row][king.col].piece = null;
                     this.cells[king.row][king.col].isSelected = null;
+
+                    this.setCellHighlighted(leftRook.row, leftRook.col, true);
+                    this.setCellHighlighted(0, 2, true);
+
+                    this.setCellHighlighted(king.row, king.col, true);
+                    this.setCellHighlighted(0, 1, true);
 
                     leftRook.hasMoved =  true;
                     king.hasMoved = true;
@@ -625,12 +674,29 @@ export class Board extends PIXI.Sprite {
                     this.cells[king.row][king.col].piece = null;
                     this.cells[king.row][king.col].isSelected = null;
 
+                    this.setCellHighlighted(rightRook.row, rightRook.col, true);
+                    this.setCellHighlighted(0, 5, true);
+
+                    this.setCellHighlighted(king.row, king.col, true);
+                    this.setCellHighlighted(0, 6, true);
+
                     rightRook.hasMoved =  true;
                     king.hasMoved = true;
 
                     this.setPieceIn(0, 5, rightRook);
                     this.setPieceIn(0, 6, king);
                 }
+            }
+
+            if (move.isCheck) {
+                let checkInfo = this.verifyCheck(this.color);
+
+                this.enableAllowedPieces();
+                this.emit('check');
+            }
+            else if (move.isCheckmate) {
+                this.setActionsEnabled(false);
+                this.emit('checkmate');
             }
             return;
         }
@@ -643,6 +709,12 @@ export class Board extends PIXI.Sprite {
                     this.cells[rightRook.row][rightRook.col].isSelected = null;
                     this.cells[king.row][king.col].piece = null;
                     this.cells[king.row][king.col].isSelected = null;
+
+                    this.setCellHighlighted(rightRook.row, rightRook.col, true);
+                    this.setCellHighlighted(0, 4, true);
+
+                    this.setCellHighlighted(king.row, king.col, true);
+                    this.setCellHighlighted(0, 5, true);
                     
                     rightRook.hasMoved =  true;
                     king.hasMoved = true;
@@ -660,12 +732,29 @@ export class Board extends PIXI.Sprite {
                     this.cells[king.row][king.col].piece = null;
                     this.cells[king.row][king.col].isSelected = null;
 
+                    this.setCellHighlighted(leftRook.row, leftRook.col, true);
+                    this.setCellHighlighted(0, 3, true);
+
+                    this.setCellHighlighted(king.row, king.col, true);
+                    this.setCellHighlighted(0, 2, true);
+
                     leftRook.hasMoved =  true;
                     king.hasMoved = true;
 
                     this.setPieceIn(0, 3, leftRook);
                     this.setPieceIn(0, 2, king);
                 }
+            }
+
+            if (move.isCheck) {
+                let checkInfo = this.verifyCheck(this.color);
+
+                this.enableAllowedPieces();
+                this.emit('check');
+            }
+            else if (move.isCheckmate) {
+                this.setActionsEnabled(false);
+                this.emit('checkmate');
             }
             return;
         }
@@ -689,7 +778,6 @@ export class Board extends PIXI.Sprite {
             for (let i = 0; i < cells.length; i++) {
                 let cell = cells[i];
                 if (row == cell[0] && col == cell[1]) {
-                    console.log(piece.kind);
 
                     if (move.isPawnPromotion) {
                         this.changePieceKind(piece, move.promotionKind);
@@ -717,12 +805,19 @@ export class Board extends PIXI.Sprite {
                         this.setCellAvailable(row, col, true);
                     }
 
+                    this.setCellHighlighted(fromRow, fromCol, true);
+                    this.setCellHighlighted(row, col, true);
+
                     this.placePieceIn(row, col, piece);
 
                     if (move.isCheck) {
+                        let checkInfo = this.verifyCheck(this.color);
+
+                        this.enableAllowedPieces();
                         this.emit('check');
                     }
-                    else if (move.isCheckMate) {
+                    else if (move.isCheckmate) {
+                        this.setActionsEnabled(false);
                         this.emit('checkmate');
                     }
 
@@ -793,6 +888,21 @@ export class Board extends PIXI.Sprite {
 
             this.redrawBoard();
         }
+    }
+
+    setCellHighlighted(row: number, col: number, isHighlighted: boolean) {
+        this.cells[row][col].isHighlighted = isHighlighted;
+        if (isHighlighted) {
+            this.highlightedCells.push([row, col]);
+        }
+    }
+
+    clearHighlightedCells() {
+        for (let i = 0; i < this.highlightedCells.length; i++) {
+            const [row, col] = this.highlightedCells[i];
+            this.setCellHighlighted(row, col, false);
+        }
+        this.highlightedCells.splice(0, this.highlightedCells.length);
     }
 
     clearAvailableCells() {
@@ -895,7 +1005,7 @@ export class Board extends PIXI.Sprite {
             toCol: col,
             toRow: row,
             isCheck: false,
-            isCheckMate: false,
+            isCheckmate: false,
             isKingSideCastle: false,
             isQueenSideCastle: false,
             hasCapture: false,
@@ -903,6 +1013,8 @@ export class Board extends PIXI.Sprite {
             isPawnPromotion: false,
             pieceKind: piece.kind
         };
+
+        this.clearHighlightedCells();
 
         if (this.cells[row][col].isAttacked) {
             pgn.hasCapture = true;
@@ -918,7 +1030,7 @@ export class Board extends PIXI.Sprite {
         }
         
         // castles
-        if (piece.kind == PieceKind.King) {
+        if (piece.kind == PieceKind.King && !this.isInCheck) {
             if (this.canKingCastle) {
                 this.canKingCastle = false;
                 if (this.color == Color.Black) {
@@ -930,6 +1042,15 @@ export class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 2, leftRook);
 
                         pgn.isKingSideCastle = true;
+
+                        let checkState = this.verifyCheck(Color.White, true);
+                        pgn.isCheck = checkState.isInCheck;
+
+                        if (checkState.isCheckmate) {
+                            pgn.isCheck = false;
+                            pgn.isCheckmate = true;
+                        }
+
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
@@ -943,6 +1064,15 @@ export class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 5, rightRook);
 
                         pgn.isKingSideCastle = true;
+
+                        let checkState = this.verifyCheck(Color.Black, true);
+                        pgn.isCheck = checkState.isInCheck;
+
+                        if (checkState.isCheckmate) {
+                            pgn.isCheck = false;
+                            pgn.isCheckmate = true;
+                        }
+
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
@@ -959,6 +1089,15 @@ export class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 4, rightRook);
             
                         pgn.isQueenSideCastle = true;
+
+                        let checkState = this.verifyCheck(Color.White, true);
+                        pgn.isCheck = checkState.isInCheck;
+
+                        if (checkState.isCheckmate) {
+                            pgn.isCheck = false;
+                            pgn.isCheckmate = true;
+                        }
+                        
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
@@ -972,6 +1111,15 @@ export class Board extends PIXI.Sprite {
                         this.placePieceIn(7, 3, leftRook);
             
                         pgn.isQueenSideCastle = true;
+
+                        let checkState = this.verifyCheck(Color.Black, true);
+                        pgn.isCheck = checkState.isInCheck;
+
+                        if (checkState.isCheckmate) {
+                            pgn.isCheck = false;
+                            pgn.isCheckmate = true;
+                        }
+
                         this.emit('movepiece', PGN.translateInto(this.color, pgn));
                         return;
                     }
@@ -981,12 +1129,14 @@ export class Board extends PIXI.Sprite {
 
         this.placePieceIn(row, col, piece);
 
-        let checkState = this.verifyCheck(this.color == Color.Black ? Color.White : Color.Black);
+        this.isInCheck = false;
+
+        let checkState = this.verifyCheck(this.color == Color.Black ? Color.White : Color.Black, true);
         pgn.isCheck = checkState.isInCheck;
 
         if (checkState.isCheckmate) {
             pgn.isCheck = false;
-            pgn.isCheckMate = true;
+            pgn.isCheckmate = true;
         }
 
         this.emit('movepiece', PGN.translateInto(this.color, pgn));
@@ -1007,25 +1157,78 @@ export class Board extends PIXI.Sprite {
         this.selectedCell = this.cells[piece.row][piece.col];
         this.cells[piece.row][piece.col].isSelected = true;
         
-        let cells;
+        let cells: number[][];
+        let checkState = this.verifyCheck(this.color, true);
+
         if (piece.kind == PieceKind.King) {
-            let checkState = this.verifyCheck();
-            if (checkState.isInCheck) {
-                cells = checkState.available;
-            }
-            else {
-                cells = piece.getAvailableCells();
-            }
+            cells = checkState.available;
         }
         else {
             cells = piece.getAvailableCells();
-        }
 
-        console.log(cells);
+            if (!this.isInCheck) {
+                let oldRow = piece.row;
+                let oldCol = piece.col;
+                this.cells[oldRow][oldCol].piece = null;
+
+                // checks the available cells the piece can go if there's a xray
+                let newCheckInfo = this.verifyCheck(this.color, false, false);
+                let attacker = newCheckInfo.piecesAttacking[0];
+                if (newCheckInfo.isInCheck || newCheckInfo.isCheckmate) {
+                    for (let i = cells.length - 1; i >= 0; i--) {
+                        let [row, col] = cells[i];
+
+                        // if the piece can attack, continue
+                        if (row == attacker.row && col == attacker.col)
+                            continue;
+
+                        let hasFound = false;
+                        for (let j = 0; j < newCheckInfo.checkCells.length; j++) {
+                            let [checkRow, checkCol] = newCheckInfo.checkCells[j];
+                            if (row == checkRow && col == checkCol) {
+                                hasFound = true;
+                                break;
+                            }
+                        }
+                        // remove the cells the piece can't go
+                        if (!hasFound) {
+                            cells.splice(i, 1);
+                        }
+                    }
+                }
+
+                this.cells[oldRow][oldCol].piece = piece;
+            }
+            else {
+
+                let attacker = checkState.piecesAttacking[0];
+
+                for (let i = cells.length - 1; i >= 0; i--) {
+                    let [row, col] = cells[i];
+
+                    if (row == attacker.row && col == attacker.col)
+                        continue;
+                    
+                    let hasFound = false;
+                    for (let j = 0; j < checkState.checkCells.length; j++) {
+                        let [checkRow, checkCol] = checkState.checkCells[j];
+                        if (checkRow == row && checkCol == col) {
+                            hasFound = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasFound) {
+                        cells.splice(i, 1);
+                    }
+                }
+            }
+        }
 
         for (let i = 0; i < cells.length; i++) {
             let [row, col] = cells[i];
             let cellPiece = this.getPieceIn(row, col);
+
             if (cellPiece) {
                 if (cellPiece.isPlayer != piece.isPlayer) {
                     this.setCellAttacked(row, col, true);
@@ -1047,6 +1250,8 @@ export class Board extends PIXI.Sprite {
                 }
             }
         }
+
+        this.redrawBoard();
     }
     
     private _color : Color = Color.White;

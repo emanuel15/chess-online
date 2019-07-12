@@ -32,7 +32,7 @@ export class Piece extends PIXI.Sprite {
         });
     }
 
-    getAvailableCells(getLastPiece: boolean = false): number[][] {
+    getAvailableCells(): number[][] {
         let cells: number[][] = [];
 
         if (this.kind == PieceKind.King) {
@@ -112,7 +112,7 @@ export class Piece extends PIXI.Sprite {
                 for (let col = this.col - 1; col <= this.col + 1; col++) {
                     let cellPiece = this.board.getPieceIn(row, col);
                     if (cellPiece) {
-                        if (this.isPlayer != cellPiece.isPlayer || getLastPiece)
+                        if (this.isPlayer != cellPiece.isPlayer)
                             if (this.board.isValidCell(row, col)) 
                                 cells.push([row, col]);
                     }
@@ -138,7 +138,7 @@ export class Piece extends PIXI.Sprite {
 
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -168,7 +168,7 @@ export class Piece extends PIXI.Sprite {
                         for (let i = this.col - 1; i <= this.col + 1; i += 2) {
                             let cellPiece = this.board.getPieceIn(row, i);
                             if (cellPiece) {
-                                if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                                if (cellPiece.isPlayer != this.isPlayer) {
                                     if (this.board.isValidCell(row, i))
                                         cells.push([row, i]);
                                 }
@@ -202,7 +202,7 @@ export class Piece extends PIXI.Sprite {
                         for (let i = this.col - 1; i <= this.col + 1; i += 2) {
                             let cellPiece = this.board.getPieceIn(row, i);
                             if (cellPiece) {
-                                if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                                if (cellPiece.isPlayer != this.isPlayer) {
                                     if (this.board.isValidCell(row, i))
                                         cells.push([row, i]);
                                 }
@@ -223,7 +223,7 @@ export class Piece extends PIXI.Sprite {
             for (let row = this.row - 1; row >= this.row - this.count; row--) {
                 let cellPiece = this.board.getPieceIn(row, this.col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(row, this.col))
                             cells.push([row, this.col]);
                     }
@@ -238,7 +238,7 @@ export class Piece extends PIXI.Sprite {
             for (let row = this.row + 1; row <= this.row + this.count; row++) {
                 let cellPiece = this.board.getPieceIn(row, this.col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(row, this.col))
                             cells.push([row, this.col]);
                     }
@@ -253,7 +253,7 @@ export class Piece extends PIXI.Sprite {
             for (let col = this.col - 1; col >= this.col - this.count; col--) {
                 let cellPiece = this.board.getPieceIn(this.row, col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(this.row, col))
                             cells.push([this.row, col]);
                     }
@@ -268,7 +268,7 @@ export class Piece extends PIXI.Sprite {
             for (let col = this.col + 1; col <= this.col + this.count; col++) {
                 let cellPiece = this.board.getPieceIn(this.row, col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(this.row, col))
                             cells.push([this.row, col]);
                     }
@@ -284,7 +284,7 @@ export class Piece extends PIXI.Sprite {
             for (let row = this.row - 1; row >= this.row - this.count; row--) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -301,7 +301,7 @@ export class Piece extends PIXI.Sprite {
             for (let row = this.row - 1; row >= this.row - this.count; row--) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -318,7 +318,7 @@ export class Piece extends PIXI.Sprite {
             for (let row = this.row + 1; row <= this.row + this.count; row++) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
@@ -335,7 +335,7 @@ export class Piece extends PIXI.Sprite {
             for (let row = this.row + 1; row <= this.row + this.count; row++) {
                 let cellPiece = this.board.getPieceIn(row, col);
                 if (cellPiece) {
-                    if (cellPiece.isPlayer != this.isPlayer || getLastPiece) {
+                    if (cellPiece.isPlayer != this.isPlayer) {
                         if (this.board.isValidCell(row, col))
                             cells.push([row, col]);
                     }
