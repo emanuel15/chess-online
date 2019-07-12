@@ -110,11 +110,18 @@ export class Board extends PIXI.Sprite {
 
                 let cell = this.cells[row][col];
 
-                cell.graphics
-                    // .beginFill(cell.color)
-                    .beginFill(0xc2bdb9)
-                        .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
-                    .endFill();
+                if (PIXI.utils.isWebGLSupported()) {
+                    cell.graphics
+                        .beginFill(0xc2bdb9)
+                            .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                        .endFill();
+                }
+                else {
+                    cell.graphics
+                        .beginFill(cell.color)
+                            .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                        .endFill();
+                }
                 
                 cell.graphics.x = x;
                 cell.graphics.y = y;
@@ -343,26 +350,65 @@ export class Board extends PIXI.Sprite {
                 let cell = this.cells[row][col];
 
                 if (cell.isAttacked) {
-                    cell.graphics.tint = 0xFF0000;
+                    if (PIXI.utils.isWebGLSupported()) {
+                        cell.graphics.tint = 0xFF0000;
+                    }
+                    else {
+                        cell.graphics.clear()
+                            .beginFill(0xFF0000)
+                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                            .endFill();
+                    }
                 }
                 else if (cell.isAvailable) {
-                    if (cell.color != 0xFFFFFF)
-                        cell.graphics.tint = 0x00ad00;
-                    else
-                        cell.graphics.tint = 0x2fff2f;
+                    if (PIXI.utils.isWebGLSupported()) {
+                        if (cell.color != 0xFFFFFF)
+                            cell.graphics.tint = 0x00ad00;
+                        else
+                            cell.graphics.tint = 0x2fff2f;
+                    }
+                    else {
+                        cell.graphics.clear()
+                            .beginFill(0x2fff2f)
+                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                            .endFill();
+                    }
                 }
                 else if (cell.isSelected) {
-                    cell.graphics.tint = 0x9662f6;
+                    if (PIXI.utils.isWebGLSupported()) {
+                        cell.graphics.tint = 0x9662f6;
+                    }
+                    else {
+                        cell.graphics.clear()
+                            .beginFill(0x9662f6)
+                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                            .endFill();
+                    }
                 }
                 else if (cell.isHighlighted) {
-                    if (cell.color != 0xFFFFFF)
-                        cell.graphics.tint = 0xc0b100;
-                    else
-                        cell.graphics.tint = 0xfeef42;
+                    if (PIXI.utils.isWebGLSupported()) {
+                        if (cell.color != 0xFFFFFF)
+                            cell.graphics.tint = 0xc0b100;
+                        else
+                            cell.graphics.tint = 0xfeef42;
+                    }
+                    else {
+                        cell.graphics.clear()
+                            .beginFill(0xfeef42)
+                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                            .endFill();
+                    }
                 }
                 else {
-                    // cell.graphics.tint = 0xFFFFFF;
-                    cell.graphics.tint = cell.color;
+                    if (PIXI.utils.isWebGLSupported()) {
+                        cell.graphics.tint = cell.color;
+                    }
+                    else {
+                        cell.graphics.clear()
+                            .beginFill(cell.color)
+                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                            .endFill();
+                    }
                 }
             }
         }
