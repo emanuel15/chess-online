@@ -31,6 +31,7 @@ let checkInfo: PIXI.Text;
 let gameInfo: PIXI.Text;
 
 let dataStream = new DataStream();
+let pingStream = new DataStream();
 let infoEl = document.querySelector('#info');
 
 function loadAssets() {
@@ -179,6 +180,11 @@ function connectToServer() {
     ws.onopen = () => {
         console.log('Connected to server');
         infoEl.textContent = 'Searching for an opponent...';
+
+        // try to avoid heroku disconnection
+        setInterval(function() {
+            ws.send(pingStream.queue(Events.Ping).output());
+        }, 5000);
     };
 
     ws.onmessage = (message) => {

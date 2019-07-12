@@ -7,6 +7,8 @@ export enum Events {
     FindGame,
     EnemyLeave,
     Move,
+    Ping,
+    Pong
 };
 
 export class DataStream {

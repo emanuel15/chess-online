@@ -5,7 +5,7 @@ import * as path from 'path';
 
 import MatchManager from './matchmanager';
 import { Player } from './player';
-import { Events } from './shared';
+import { Events, DataStream } from './shared';
 
 const app = express();
 const server = new http.Server(app);
@@ -24,6 +24,7 @@ const wss = new WebSocket.Server({ server });
 wss.on('connection', (socket, request) => {
     console.log('New connection');
 
+    let pongStream = new DataStream();
     let player = new Player(socket);
     let match = matchManager.getAvailableMatch();
     match.joinPlayer(player);
@@ -39,6 +40,9 @@ wss.on('connection', (socket, request) => {
                     match.movePiece(player.color, value);
                     break;
                 
+                case Events.Ping:
+                    // try to avoid heroku disconnection
+                    socket.send(pongStream.queue(Events.Pong).output());
                 default:
                     break;
             }
