@@ -169,19 +169,12 @@ function initializeGame() {
     gameInfo.x = app.view.width / 2;
     gameInfo.y = app.view.height / 2 - BOARD_HEIGHT / 2 - 60; 
 
-
-    document.addEventListener('keypress', function(event) {
-        if (event.key == 'c') {
-            board.verifyCheck(board.color, true);
-        }
-    });
-
     loadAssets();
 }
 
 function connectToServer() {
     let host = location.origin.replace(/^http/, 'ws');
-    ws = new WebSocket('ws://localhost:8000');
+    ws = new WebSocket(host);
 
     ws.onopen = () => {
         console.log('Connected to server');
