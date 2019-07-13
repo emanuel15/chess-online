@@ -177,7 +177,7 @@ function initializeGame() {
 
 function connectToServer() {
     let host = location.origin.replace(/^http/, 'ws');
-    ws = new WebSocket('ws://localhost:8000');
+    ws = new WebSocket(host);
 
     ws.onopen = () => {
         console.log('Connected to server');
