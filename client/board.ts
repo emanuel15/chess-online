@@ -6,6 +6,7 @@ import {
     PGNObject,
     PieceKind,
     PieceDirection,
+    CastlesInfo,
     BOARD_WIDTH,
     BOARD_HEIGHT,
     CELL_WIDTH,
@@ -57,9 +58,20 @@ interface Cell {
     isAttacked: boolean;
     isSelected: boolean;
     isHighlighted: boolean;
-    color: number;
+    color: CellColor;
     piece: Piece;
     graphics: PIXI.Graphics;
+}
+
+enum CellColor {
+    Light = 0xffffff,
+    Dark = 0xc88340,
+    LightHighlight = 0xfeef42,
+    DarkHighlight = 0xc0b100,
+    Selected = 0x9662f6,
+    Attacked = 0xff0000,
+    LightAvailable = 0x2fff2f,
+    DarkAvailable = 0x00ad00,
 }
 
 export class Board extends PIXI.Sprite {
@@ -78,9 +90,6 @@ export class Board extends PIXI.Sprite {
 
     private spriteSheet: PIXI.Spritesheet = null;
 
-    public canKingCastle: boolean = false;
-    public canQueenCastle: boolean = false;
-
     public isInCheck: boolean = false;
     private kingMustMove: boolean = false;
     private allowedToMove: number[] = [];
@@ -96,7 +105,7 @@ export class Board extends PIXI.Sprite {
             for (let col = 0; col < 8; col++) {
                 this.cells[row].push({
                     // color: switchColor ? 0xa76626 : 0xc2bdb9,
-                    color: switchColor ? 0xc88340 : 0xFFFFFF,
+                    color: switchColor ? CellColor.Dark : CellColor.Light,
                     isAvailable: false,
                     isAttacked: false,
                     isSelected: false,
@@ -112,7 +121,7 @@ export class Board extends PIXI.Sprite {
 
                 if (PIXI.utils.isWebGLSupported()) {
                     cell.graphics
-                        .beginFill(0xc2bdb9)
+                        .beginFill(CellColor.Dark)
                             .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                         .endFill();
                 }
@@ -234,8 +243,6 @@ export class Board extends PIXI.Sprite {
     }
 
     resetBoard(app: PIXI.Application) {
-        this.canKingCastle = false;
-        this.canQueenCastle = false;
 
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
@@ -351,50 +358,63 @@ export class Board extends PIXI.Sprite {
 
                 if (cell.isAttacked) {
                     if (PIXI.utils.isWebGLSupported()) {
-                        cell.graphics.tint = 0xFF0000;
+                        cell.graphics.tint = CellColor.Attacked;
                     }
                     else {
                         cell.graphics.clear()
-                            .beginFill(0xFF0000)
+                            .beginFill(CellColor.Attacked)
                                 .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                             .endFill();
                     }
                 }
                 else if (cell.isAvailable) {
                     if (PIXI.utils.isWebGLSupported()) {
-                        if (cell.color != 0xFFFFFF)
-                            cell.graphics.tint = 0x00ad00;
+                        if (cell.color != CellColor.Light)
+                            cell.graphics.tint = CellColor.DarkAvailable;
                         else
-                            cell.graphics.tint = 0x2fff2f;
+                            cell.graphics.tint = CellColor.LightAvailable;
                     }
                     else {
+                        let color;
+                        if (cell.color != CellColor.Light)
+                            color = CellColor.DarkAvailable;
+                        else
+                            color = CellColor.LightAvailable;
+                        
                         cell.graphics.clear()
-                            .beginFill(0x2fff2f)
+                            .beginFill(color)
                                 .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                             .endFill();
                     }
                 }
                 else if (cell.isSelected) {
                     if (PIXI.utils.isWebGLSupported()) {
-                        cell.graphics.tint = 0x9662f6;
+                        cell.graphics.tint = CellColor.Selected;
                     }
                     else {
                         cell.graphics.clear()
-                            .beginFill(0x9662f6)
+                            .beginFill(CellColor.Selected)
                                 .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                             .endFill();
                     }
                 }
                 else if (cell.isHighlighted) {
                     if (PIXI.utils.isWebGLSupported()) {
-                        if (cell.color != 0xFFFFFF)
-                            cell.graphics.tint = 0xc0b100;
+                        if (cell.color != CellColor.Light)
+                            cell.graphics.tint = CellColor.DarkHighlight;
                         else
-                            cell.graphics.tint = 0xfeef42;
+                            cell.graphics.tint = CellColor.LightHighlight;
                     }
                     else {
+                        let color;
+
+                        if (cell.color != CellColor.Light)
+                            color = CellColor.DarkHighlight;
+                        else
+                            color = CellColor.LightHighlight;
+                        
                         cell.graphics.clear()
-                            .beginFill(0xfeef42)
+                            .beginFill(color)
                                 .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                             .endFill();
                     }
@@ -501,23 +521,32 @@ export class Board extends PIXI.Sprite {
                 if (row == king.row && col == king.col) {
                     let canBreak = false;
 
-                    // get the cells in the same direction as the king
-                    for (let j = i - 1; j >= 0; j--) {
-                        let [prevRow, prevCol] = cells[j];
-                        checkCells.push([prevRow, prevCol]);
+                    let biggerCol = Math.max(king.col, piece.col);
+                    let biggerRow = Math.max(king.row, piece.row);
+                    let smallerCol = Math.min(king.col, piece.col);
+                    let smallerRow = Math.max(king.row, piece.row);
 
-                        for (let r = prevRow - 1; r <= prevRow + 1; r++) {
-                            for (let c = prevCol - 1; c <= prevCol + 1; c++) {
-                                if (r == piece.row && c == piece.col) {
-                                    canBreak = true;
-                                    break;
+                    let distance = ((biggerCol-smallerCol)^2 + (biggerRow-smallerRow)^2)^0.5;
+
+                    if (distance > 1) {
+                        // get the cells in the same direction as the king
+                        for (let j = i - 1; j >= 0; j--) {
+                            let [prevRow, prevCol] = cells[j];
+                            checkCells.push([prevRow, prevCol]);
+
+                            for (let r = prevRow - 1; r <= prevRow + 1; r++) {
+                                for (let c = prevCol - 1; c <= prevCol + 1; c++) {
+                                    if (r == piece.row && c == piece.col) {
+                                        canBreak = true;
+                                        break;
+                                    }
                                 }
+                                if (canBreak)
+                                    break;
                             }
                             if (canBreak)
                                 break;
                         }
-                        if (canBreak)
-                            break;
                     }
 
                     piecesAttacking.push(piece);
@@ -703,6 +732,8 @@ export class Board extends PIXI.Sprite {
                 }
             }
 
+            this.redrawBoard();
+
             if (move.isCheck) {
                 let checkInfo = this.verifyCheck(this.color);
 
@@ -760,6 +791,8 @@ export class Board extends PIXI.Sprite {
                     this.setPieceIn(0, 2, king);
                 }
             }
+
+            this.redrawBoard();
 
             if (move.isCheck) {
                 let checkInfo = this.verifyCheck(this.color);
@@ -1045,104 +1078,80 @@ export class Board extends PIXI.Sprite {
         }
         
         // castles
-        if (piece.kind == PieceKind.King && !this.isInCheck) {
-            if (this.canKingCastle) {
-                this.canKingCastle = false;
-                if (this.color == Color.Black) {
-                    if (row == 7 && col == 1) {
-                        let leftRook = this.getPieceIn(7, 0);
-                        this.placePieceIn(7, 1, piece);
+        if (piece.kind == PieceKind.King) {
+            
+            let castlesInfo = this.getCastlesInfo();
 
-                        this.setCellAvailable(7, 2, true);
-                        this.placePieceIn(7, 2, leftRook);
+            let rookRow = 0, rookCol = 0;
+            let newKingCol = 0, newRookCol = 0;
 
-                        pgn.isKingSideCastle = true;
-
-                        let checkState = this.verifyCheck(Color.White, true);
-                        pgn.isCheck = checkState.isInCheck;
-
-                        if (checkState.isCheckmate) {
-                            pgn.isCheck = false;
-                            pgn.isCheckmate = true;
-                            this.emit('youwon');
-                        }
-
-                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
-                        return;
+            if (col == 1 || col == 6) {
+                if (castlesInfo.canKingCastle) {
+                    if (this.color == Color.Black) {
+                        // left rook
+                        rookRow = 7;
+                        rookCol = 0;
+                        newKingCol = 1;
+                        newRookCol = 2;
                     }
-                }
-                else {
-                    if (row == 7 && col == 6) {
-                        let rightRook = this.getPieceIn(7, 7);
-                        this.placePieceIn(7, 6, piece);
-
-                        this.setCellAvailable(7, 5, true);
-                        this.placePieceIn(7, 5, rightRook);
-
-                        pgn.isKingSideCastle = true;
-
-                        let checkState = this.verifyCheck(Color.Black, true);
-                        pgn.isCheck = checkState.isInCheck;
-
-                        if (checkState.isCheckmate) {
-                            pgn.isCheck = false;
-                            pgn.isCheckmate = true;
-                            this.emit('youwon');
-                        }
-
-                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
-                        return;
+                    else {
+                        // right rook
+                        rookRow = 7;
+                        rookCol = 7;
+                        newKingCol = 6;
+                        newRookCol = 5;
                     }
+
+                    let rook = this.getPieceIn(rookRow, rookCol);
+
+                    this.placePieceIn(7, newKingCol, piece);
+
+                    this.setCellAvailable(7, newRookCol, true);
+                    this.placePieceIn(7, newRookCol, rook);
+
+                    pgn.isKingSideCastle = true;
                 }
             }
-            if (this.canQueenCastle) {
-                this.canQueenCastle = false;
-                if (this.color == Color.Black) {
-                    if (row == 7 && col == 5) {
-                        let rightRook = this.getPieceIn(7, 7);
-                        this.placePieceIn(7, 5, piece);
-
-                        this.setCellAvailable(7, 4, true);
-                        this.placePieceIn(7, 4, rightRook);
-            
-                        pgn.isQueenSideCastle = true;
-
-                        let checkState = this.verifyCheck(Color.White, true);
-                        pgn.isCheck = checkState.isInCheck;
-
-                        if (checkState.isCheckmate) {
-                            pgn.isCheck = false;
-                            pgn.isCheckmate = true;
-                            this.emit('youwon');
-                        }
-                        
-                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
-                        return;
+            else if (col == 5 || col == 2) {
+                if (castlesInfo.canQueenCastle) {
+                    if (this.color == Color.Black) {
+                        // right rook
+                        rookRow = 7;
+                        rookCol = 7;
+                        newKingCol = 5;
+                        newRookCol = 4;
                     }
-                }
-                else {
-                    if (row == 7 && col == 2) {
-                        let leftRook = this.getPieceIn(7, 0);
-                        this.placePieceIn(7, 2, piece);
-
-                        this.setCellAvailable(7, 3, true);
-                        this.placePieceIn(7, 3, leftRook);
-            
-                        pgn.isQueenSideCastle = true;
-
-                        let checkState = this.verifyCheck(Color.Black, true);
-                        pgn.isCheck = checkState.isInCheck;
-
-                        if (checkState.isCheckmate) {
-                            pgn.isCheck = false;
-                            pgn.isCheckmate = true;
-                            this.emit('youwon');
-                        }
-
-                        this.emit('movepiece', PGN.translateInto(this.color, pgn));
-                        return;
+                    else {
+                        // left rook
+                        rookRow = 7;
+                        rookCol = 0;
+                        newKingCol = 2;
+                        newRookCol = 3;
                     }
+
+                    let rook = this.getPieceIn(rookRow, rookCol);
+
+                    this.placePieceIn(7, newKingCol, piece);
+
+                    this.setCellAvailable(7, newRookCol, true);
+                    this.placePieceIn(7, newRookCol, rook);
+
+                    pgn.isQueenSideCastle = true;
                 }
+            }
+
+            if (pgn.isKingSideCastle || pgn.isQueenSideCastle) {
+                let checkState = this.verifyCheck(<Color>this.enemyColor, true);
+                pgn.isCheck = checkState.isInCheck;
+
+                if (checkState.isCheckmate) {
+                    pgn.isCheck = false;
+                    pgn.isCheckmate = true;
+                    this.emit('youwon');
+                }
+
+                this.emit('movepiece', PGN.translateInto(this.color, pgn));
+                return;
             }
         }
 
@@ -1182,6 +1191,24 @@ export class Board extends PIXI.Sprite {
 
         if (piece.kind == PieceKind.King) {
             cells = checkState.available;
+
+            // add the castles cells if any available
+            if (!this.isInCheck) {
+                let castlesInfo = this.getCastlesInfo();
+                if (castlesInfo.canKingCastle) {
+                    if (this.color == Color.Black)
+                        cells.push([7, 1]);
+                    else
+                        cells.push([7, 6]);
+                }
+
+                if (castlesInfo.canQueenCastle) {
+                    if (this.color == Color.Black)
+                        cells.push([7, 5]);
+                    else
+                        cells.push([7, 2]);
+                }
+            }
         }
         else {
             cells = piece.getAvailableCells();
@@ -1272,6 +1299,128 @@ export class Board extends PIXI.Sprite {
         }
 
         this.redrawBoard();
+    }
+
+    private getCastlesInfo(): CastlesInfo {
+        let king = this.pieces[this.color].king;
+
+        let rookCol = 0;
+        let fromCol = 0, toCol = 0;
+
+        let canQueenCastle = true;
+        let canKingCastle = true;
+
+        if (!king.hasMoved) {
+
+            // checks if can king side castle
+            if (this.color == Color.Black) {
+                // left rook
+                rookCol = 0;
+                fromCol = 1;
+                toCol = 2;
+            }
+            else {
+                // right rook
+                rookCol = 7;
+                fromCol = 5;
+                toCol = 6;
+            }
+
+            let rook = this.getPieceIn(7, rookCol);
+            if (rook && rook.kind == PieceKind.Rook && !rook.hasMoved) {
+                for (let col = fromCol; col <= toCol; col++) {
+                    // if there's a piece in the way, can't castle
+                    if (this.getPieceIn(7, col)) {
+                        canKingCastle = false;
+                        break;
+                    }
+                    else {
+                        // check if the king can go without getting checked
+                        let oldRow = king.row;
+                        let oldCol = king.col;
+
+                        this.setPieceIn(7, col, king);
+
+                        let checkInfo = this.verifyCheck(this.color, false, false);
+
+                        this.setPieceIn(oldRow, oldCol, king);
+                        this.cells[7][col].piece = null;
+
+                        if (checkInfo.isInCheck) {
+                            canKingCastle = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                canKingCastle = false;
+            }
+
+            // checks if can queen side castle
+            if (this.color == Color.Black) {
+                // right rook
+                rookCol = 7;
+                fromCol = 4;
+                toCol = 6;
+            }
+            else {
+                // left rook
+                rookCol = 0;
+                fromCol = 1;
+                toCol = 3;
+            }
+
+            rook = this.getPieceIn(7, rookCol);
+            if (rook && rook.kind == PieceKind.Rook && !rook.hasMoved) {
+                for (let col = fromCol; col <= toCol; col++) {
+                    // if there's a piece in the way, can't castle
+                    if (this.getPieceIn(7, col)) {
+                        canQueenCastle = false;
+                        break;
+                    }
+                    else {
+                        // don't need to check the last col in queen side
+                        if (this.color == Color.Black) {
+                            if (col == toCol)
+                                continue;
+                        }
+                        else {
+                            if (col == fromCol)
+                                continue;
+                        }
+
+                        // check if the king can go without getting checked
+                        let oldRow = king.row;
+                        let oldCol = king.col;
+
+                        this.setPieceIn(7, col, king);
+
+                        let checkInfo = this.verifyCheck(this.color, false, false);
+
+                        this.setPieceIn(oldRow, oldCol, king);
+                        this.cells[7][col].piece = null;
+
+                        if (checkInfo.isInCheck) {
+                            canQueenCastle = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                canQueenCastle = false;
+            }
+        }
+        else {
+            canKingCastle = false;
+            canQueenCastle = false;
+        }
+
+        return {
+            canKingCastle: canKingCastle,
+            canQueenCastle: canQueenCastle
+        };
     }
     
     private _color : Color = Color.White;

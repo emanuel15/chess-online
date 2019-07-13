@@ -26,7 +26,7 @@ let board: Board;
 let promotionWindow: PIXI.Graphics;
 let promotionSprites: PIXI.Sprite[] = [];
 let promotionPiece: Piece, promotionRow: number, promotionCol: number, promotionPGN: PGNObject;
-
+let gameOver: boolean = false;
 let checkInfo: PIXI.Text;
 let gameInfo: PIXI.Text;
 
@@ -140,10 +140,12 @@ function initializeGame() {
     board.on('checkmate', function() {
         gameInfo.text = 'You lost!';
         checkInfo.text = 'Checkmate!';
+        gameOver = true;
     });
 
     board.on('youwon', function() {
         gameInfo.text = 'You won!';
+        gameOver = true;
     });
 
     checkInfo = new PIXI.Text('', {
@@ -175,7 +177,7 @@ function initializeGame() {
 
 function connectToServer() {
     let host = location.origin.replace(/^http/, 'ws');
-    ws = new WebSocket(host);
+    ws = new WebSocket('ws://localhost:8000');
 
     ws.onopen = () => {
         console.log('Connected to server');
@@ -208,6 +210,11 @@ function connectToServer() {
                     break;
                 
                 case Events.ChangeTurn:
+                    if (gameOver) {
+                        board.setActionsEnabled(false);
+                        break;
+                    }
+                    
                     let turnColor = value;
 
                     board.moves++;

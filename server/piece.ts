@@ -28,71 +28,25 @@ export class Piece {
         let cells: number[][] = [];
         let pos = [this.row, this.col];
 
-        if (this.kind == PieceKind.King && !this.hasMoved) {
-            
-            let canKingCastle = true;
-            if (!this.isWhite) {
-                let leftRook = this.board.getPieceIn(7, 0);
-                if (leftRook && leftRook.kind == PieceKind.Rook && !leftRook.hasMoved) {
-                    for (let col = 1; col <= 2; col++) {
-                        if (this.board.getPieceIn(7, col)) {
-                            canKingCastle = false;
-                            break;
-                        }
+        if (this.kind == PieceKind.King) {
+
+            // cells available around the king
+            for (let row = this.row - 1; row <= this.row + 1; row++) {
+                for (let col = this.col - 1; col <= this.col + 1; col++) {
+                    let cellPiece = this.board.getPieceIn(row, col);
+                    if (cellPiece) {
+                        if (this.isWhite != cellPiece.isWhite)
+                            if (this.board.isValidCell(row, col)) 
+                                cells.push([row, col]);
                     }
-                    if (canKingCastle) {
-                        this.board.canKingCastle = true;
-                        cells.push([7, 1]);
-                    }
-                }
-            }
-            else {
-                let rightRook = this.board.getPieceIn(7, 7);
-                if (rightRook && rightRook.kind == PieceKind.Rook && !rightRook.hasMoved) {
-                    for (let col = 5; col <= 6; col++) {
-                        if (this.board.getPieceIn(7, col)) {
-                            canKingCastle = false;
-                            break;
-                        }
-                    }
-                    if (canKingCastle) {
-                        this.board.canKingCastle = true;
-                        cells.push([7, 6]);
+                    else {
+                        if (this.board.isValidCell(row, col))
+                            cells.push([row, col]);
                     }
                 }
             }
 
-            let canQueenCastle = true;
-            if (!this.isWhite) {
-                let leftRook = this.board.getPieceIn(0, 0);
-                if (leftRook && leftRook.kind == PieceKind.Rook && !leftRook.hasMoved) {
-                    for (let col = 1; col <= 3; col++) {
-                        if (this.board.getPieceIn(0, col)) {
-                            canQueenCastle = false;
-                            break;
-                        }
-                    }
-                    if (canQueenCastle) {
-                        this.board.canQueenCastle = true;
-                        cells.push([0, 5]);
-                    }
-                }
-            }
-            else {
-                let rightRook = this.board.getPieceIn(7, 7);
-                if (rightRook && rightRook.kind == PieceKind.Rook && !rightRook.hasMoved) {
-                    for (let col = 1; col <= 3; col++) {
-                        if (this.board.getPieceIn(7, col)) {
-                            canQueenCastle = false;
-                            break;
-                        }
-                    }
-                    if (canQueenCastle) {
-                        this.board.canQueenCastle = true;
-                        cells.push([7, 2]);
-                    }
-                }
-            }
+            return cells;
         }
 
         if (this.kind == PieceKind.Knight) {

@@ -36,77 +36,7 @@ export class Piece extends PIXI.Sprite {
         let cells: number[][] = [];
 
         if (this.kind == PieceKind.King) {
-
-            if (!this.hasMoved) {
-                let canKingCastle = true;
-                if (this.board.color == Color.Black) {
-                    let leftRook = this.board.getPieceIn(7, 0);
-                    if (leftRook && leftRook.kind == PieceKind.Rook && !leftRook.hasMoved) {
-                        for (let col = 1; col <= 2; col++) {
-                            if (this.board.getPieceIn(7, col)) {
-                                canKingCastle = false;
-                                break;
-                            }
-                        }
-                        if (canKingCastle) {
-                            if (this.isPlayer)
-                                this.board.canKingCastle = true;
-                            cells.push([7, 1]);
-                        }
-                    }
-                }
-                else {
-                    let rightRook = this.board.getPieceIn(7, 7);
-                    if (rightRook && rightRook.kind == PieceKind.Rook && !rightRook.hasMoved) {
-                        for (let col = 5; col <= 6; col++) {
-                            if (this.board.getPieceIn(7, col)) {
-                                canKingCastle = false;
-                                break;
-                            }
-                        }
-                        if (canKingCastle) {
-                            if (this.isPlayer)
-                                this.board.canKingCastle = true;
-                            cells.push([7, 6]);
-                        }
-                    }
-                }
-
-                let canQueenCastle = true;
-                if (this.board.color == Color.Black) {
-                    let rightRook = this.board.getPieceIn(7, 7);
-                    if (rightRook && rightRook.kind == PieceKind.Rook && !rightRook.hasMoved) {
-                        for (let col = 4; col <= 6; col++) {
-                            if (this.board.getPieceIn(7, col)) {
-                                canQueenCastle = false;
-                                break;
-                            }
-                        }
-                        if (canQueenCastle) {
-                            if (this.isPlayer)
-                                this.board.canQueenCastle = true;
-                            cells.push([7, 5]);
-                        }
-                    }
-                }
-                else {
-                    let leftRook = this.board.getPieceIn(7, 0);
-                    if (leftRook && leftRook.kind == PieceKind.Rook && !leftRook.hasMoved) {
-                        for (let col = 1; col <= 3; col++) {
-                            if (this.board.getPieceIn(7, col)) {
-                                canQueenCastle = false;
-                                break;
-                            }
-                        }
-                        if (canQueenCastle) {
-                            if (this.isPlayer)
-                                this.board.canQueenCastle = true;
-                            cells.push([7, 2]);
-                        }
-                    }
-                }
-            }
-
+            
             // cells available around the king
             for (let row = this.row - 1; row <= this.row + 1; row++) {
                 for (let col = this.col - 1; col <= this.col + 1; col++) {

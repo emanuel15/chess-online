@@ -1,5 +1,5 @@
 import {Piece} from './piece';
-import { Color, PGN, PieceKind, PieceDirection } from './shared';
+import { Color, PGN, PieceKind, PieceDirection, CastlesInfo } from './shared';
 
 interface CheckInfo {
     available: number[][];
@@ -53,9 +53,6 @@ export default class Board {
 
     private alivePieces: Pool;
     private pieces: Pieces;
-
-    public canKingCastle: boolean = false;
-    public canQueenCastle: boolean = false;
 
     public isInCheck: boolean = false;
     private kingMustMove: boolean = false;
@@ -139,9 +136,6 @@ export default class Board {
     }
 
     resetBoard() {
-        this.canKingCastle = false;
-        this.canQueenCastle = false;
-
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
                 this.cells[row][col].isAvailable = false;
@@ -231,128 +225,113 @@ export default class Board {
         }
     }
     
-    validateCastles(color: Color, moveText: string): boolean {
-        let move = PGN.translateFrom(color, moveText);
+    getCastlesInfo(color: Color): CastlesInfo {
+        let king = this.pieces[color].king;
 
-        if (move.isKingSideCastle) {
-            this.pieces[color].king.getAvailableCells();
-            if (this.canKingCastle) {
-                if (color == Color.Black) {
-                    let king = this.pieces.black.king;
-                    let rightRook = this.getPieceIn(0, 7);
-                    if (rightRook && !rightRook.hasMoved && rightRook.kind == PieceKind.Rook) {
-                        if (!king.hasMoved) {
-                            king.hasMoved = true;
+        // king has already been moved, can't castle
+        if (king.hasMoved) {
+            return {
+                canKingCastle: false,
+                canQueenCastle: false
+            }
+        }
+        
+        let kingRow = king.row;
+        let kingCol = king.col;
+        
+        let rookRow = 0;
+        let rookCol = 7;
+        let fromCol = 5;
+        let toCol = 6;
 
-                            let canKingCastle = true;
-                            for (let col = 5; col <= 6; col++) {
-                                let piece = this.getPieceIn(0, col);
-                                if (piece) {
-                                    canKingCastle = false;
-                                    break;
-                                }
-                            }
+        let canKingCastle = true;
+        let canQueenCastle = true;
 
-                            if (canKingCastle) {
-                                this.cells[king.row][king.col].piece = null;
-                                this.cells[rightRook.row][rightRook.col].piece = null;
+        // right rook
+        if (color == Color.Black) {
+            rookRow = 0;
+        }
+        else {
+            rookRow = 7;
+        }
 
-                                this.setPieceIn(0, 6, king);
-                                this.setPieceIn(0, 5, rightRook);
-                                return true;
-                            }
-                        }
-                    }
+        let rook = this.getPieceIn(rookRow, rookCol);
+        if (rook && !rook.hasMoved && rook.kind == PieceKind.Rook) {
+            for (let col = fromCol; col <= toCol; col++) {
+                let piece = this.getPieceIn(kingRow, col);
+                if (piece) {
+                    canKingCastle = false;
+                    break;
                 }
                 else {
-                    let king = this.pieces.white.king;
-                    let rightRook = this.getPieceIn(7, 7);
-                    if (rightRook && !rightRook.hasMoved && rightRook.kind == PieceKind.Rook) {
-                        if (!king.hasMoved) {
-                            king.hasMoved = true;
+                    // check if the king can go without getting checked
 
-                            let canKingCastle = true;
-                            for (let col = 5; col <= 6; col++) {
-                                let piece = this.getPieceIn(7, col);
-                                if (piece) {
-                                    canKingCastle = false;
-                                    break;
-                                }
-                            }
+                    this.setPieceIn(kingRow, col, king);
 
-                            if (canKingCastle) {
-                                this.cells[king.row][king.col].piece = null;
-                                this.cells[rightRook.row][rightRook.col].piece = null;
+                    let checkInfo = this.verifyCheck(color, false, false);
+                    
+                    // returns the king back
+                    this.setPieceIn(kingRow, kingCol, king);
 
-                                this.setPieceIn(7, 6, king);
-                                this.setPieceIn(7, 5, rightRook);
-                                return true;
-                            }
-                        }
+                    // sets the col's piece back to null
+                    this.cells[kingRow][col].piece = null;
+
+                    if (checkInfo.isInCheck) {
+                        canKingCastle = false;
+                        break;
                     }
                 }
             }
         }
-        else if (move.isQueenSideCastle) {
-            this.pieces[color].king.getAvailableCells();
-            if (this.canQueenCastle) {
-                if (color == Color.Black) {
-                    let king = this.pieces.black.king;
-                    let leftRook = this.getPieceIn(0, 0);
-                    if (leftRook && !leftRook.hasMoved && leftRook.kind == PieceKind.Rook) {
-                        if (!king.hasMoved) {
-                            king.hasMoved = true;
+        else {
+            canKingCastle = false;
+        }
 
-                            let canQueenCastle = true;
-                            for (let col = 1; col <= 3; col++) {
-                                let piece = this.getPieceIn(0, col);
-                                if (piece) {
-                                    canQueenCastle = false;
-                                    break;
-                                }
-                            }
+        // checks if can queen side castle
+        rookCol = 0;
+        fromCol = 1;
+        toCol = 3;
 
-                            if (canQueenCastle) {
-                                this.cells[king.row][king.col].piece = null;
-                                this.cells[leftRook.row][leftRook.col].piece = null;
-
-                                this.setPieceIn(0, 2, king);
-                                this.setPieceIn(0, 3, leftRook);
-                                return true;
-                            }
-                        }
-                    }
+        rook = this.getPieceIn(rookRow, rookCol);
+        if (rook && !rook.hasMoved && rook.kind == PieceKind.Rook) {
+            for (let col = fromCol; col <= toCol; col++) {
+                let piece = this.getPieceIn(kingRow, col);
+                if (piece) {
+                    canQueenCastle = false;
+                    break;
                 }
                 else {
-                    let king = this.pieces.white.king;
-                    let leftRook = this.getPieceIn(7, 0);
-                    if (leftRook && !leftRook.hasMoved && leftRook.kind == PieceKind.Rook) {
-                        if (!king.hasMoved) {
-                            king.hasMoved = true;
+                    // don't need to check the last col in queen side
+                    if (col == fromCol)
+                        continue;
 
-                            let canQueenCastle = true;
-                            for (let col = 1; col <= 3; col++) {
-                                let piece = this.getPieceIn(7, col);
-                                if (piece) {
-                                    canQueenCastle = false;
-                                    break;
-                                }
-                            }
+                    // check if the king can go without getting checked
 
-                            if (canQueenCastle) {
-                                this.cells[king.row][king.col].piece = null;
-                                this.cells[leftRook.row][leftRook.col].piece = null;
+                    this.setPieceIn(kingRow, col, king);
 
-                                this.setPieceIn(7, 2, king);
-                                this.setPieceIn(7, 3, leftRook);
-                                return true;
-                            }
-                        }
+                    let checkInfo = this.verifyCheck(color, false, false);
+                    
+                    // returns the king back
+                    this.setPieceIn(kingRow, kingCol, king);
+
+                    // sets the col's piece back to null
+                    this.cells[kingRow][col].piece = null;
+
+                    if (checkInfo.isInCheck) {
+                        canQueenCastle = false;
+                        break;
                     }
                 }
             }
         }
-        return false;
+        else {
+            canQueenCastle = false;
+        }
+
+        return {
+            canKingCastle: canKingCastle,
+            canQueenCastle: canQueenCastle
+        }
     }
 
     clearPassants() {
@@ -548,29 +527,70 @@ export default class Board {
         let move = PGN.translateFrom(color, moveText);
 
         if (move.isKingSideCastle || move.isQueenSideCastle) {
-            let result = this.validateCastles(color, moveText);
+            let castlesInfo = this.getCastlesInfo(color);
+            
+            let king = this.pieces[color].king;
+            let rookRow = 0;
+            let rookCol = 0;
+            let newKingCol = 0;
+            let newRookCol = 0;
 
-            if (result) {
-                let checkState = this.verifyCheck(color == Color.Black ? Color.White : Color.Black, true);
-
-                this.isCheckmate = checkState.isCheckmate;
-
-                // this.printVisualRepresentation();
-                if (move.isCheck) {
-                    if (checkState.isInCheck)
-                        return true;
-                    
-                    return false;
+            if (castlesInfo.canKingCastle && move.isKingSideCastle) {
+                if (color == Color.Black) {
+                    rookRow = 0;
+                    rookCol = 7;
+                    newKingCol = 6;
+                    newRookCol = 5;
                 }
-                else if (move.isCheckmate) {
-                    if (checkState.isCheckmate)
-                        return true;
-                    return false;
+                else {
+                    rookRow = 7;
+                    rookCol = 7;
+                    newKingCol = 6;
+                    newRookCol = 5;
                 }
-
-                return true;
             }
-            return false;
+            else if (castlesInfo.canQueenCastle && move.isQueenSideCastle) {
+                if (color == Color.Black) {
+                    rookRow = 0;
+                    rookCol = 0;
+                    newKingCol = 2;
+                    newRookCol = 3;
+                }
+                else {
+                    rookRow = 7;
+                    rookCol = 0;
+                    newKingCol = 2;
+                    newRookCol = 3;
+                }
+            }
+
+            let rook = this.getPieceIn(rookRow, rookCol);
+
+            this.cells[king.row][king.col].piece = null;
+            this.cells[rookRow][rookCol].piece = null;
+
+            this.setPieceIn(king.row, newKingCol, king);
+            this.setPieceIn(rookRow, newRookCol, rook);
+
+            // check if the castles is a check or checkmate
+            let checkState = this.verifyCheck(color == Color.Black ? Color.White : Color.Black, true);
+            this.isCheckmate = checkState.isCheckmate;
+
+            this.printVisualRepresentation();
+
+            if (move.isCheck) {
+                if (checkState.isInCheck)
+                    return true;
+                
+                return false;
+            }
+            else if (move.isCheckmate) {
+                if (checkState.isCheckmate)
+                    return true;
+                return false;
+            }
+
+            return true;
         }
         
         if (!this.isValidCell(move.fromRow, move.fromCol) || !this.isValidCell(move.fromRow, move.fromCol))

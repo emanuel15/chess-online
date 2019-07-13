@@ -220,3 +220,8 @@ export enum PieceKind {
     Queen = 'Q',
     King = 'K',
 }
+
+export interface CastlesInfo {
+    canKingCastle: boolean;
+    canQueenCastle: boolean;
+}

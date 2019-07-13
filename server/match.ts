@@ -49,6 +49,7 @@ export default class Match {
 
     leavePlayer(player: Player) {
         if (this.player1 == player) {
+            this.player1 = null;
             if (this.player2) {
                 this.player2.send(this.dataStream
                     .queue(Events.EnemyLeave)
@@ -57,6 +58,7 @@ export default class Match {
             }
         }
         else {
+            this.player2 = null;
             if (this.player1) {
                 this.player1.send(this.dataStream
                     .queue(Events.EnemyLeave)
@@ -95,9 +97,7 @@ export default class Match {
                 );
             }
 
-            if (!this.board.isCheckmate) {
-                this.changeTurn();
-            }
+            this.changeTurn();
         }
     }
 
