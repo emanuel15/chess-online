@@ -122,7 +122,7 @@ export class Board extends PIXI.Sprite {
 
                 if (PIXI.utils.isWebGLSupported()) {
                     cell.graphics
-                        .beginFill(CellColor.Dark)
+                        .beginFill(CellColor.Light)
                             .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
                         .endFill();
                 }
@@ -356,81 +356,36 @@ export class Board extends PIXI.Sprite {
             for (let col = 0; col < 8; col++) {
 
                 let cell = this.cells[row][col];
+                let color;
 
                 if (cell.isAttacked) {
-                    if (PIXI.utils.isWebGLSupported()) {
-                        cell.graphics.tint = CellColor.Attacked;
-                    }
-                    else {
-                        cell.graphics.clear()
-                            .beginFill(CellColor.Attacked)
-                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
-                            .endFill();
-                    }
+                    color = CellColor.Attacked;
                 }
                 else if (cell.isAvailable) {
-                    if (PIXI.utils.isWebGLSupported()) {
-                        if (cell.color != CellColor.Light)
-                            cell.graphics.tint = CellColor.DarkAvailable;
-                        else
-                            cell.graphics.tint = CellColor.LightAvailable;
-                    }
-                    else {
-                        let color;
-                        if (cell.color != CellColor.Light)
-                            color = CellColor.DarkAvailable;
-                        else
-                            color = CellColor.LightAvailable;
-                        
-                        cell.graphics.clear()
-                            .beginFill(color)
-                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
-                            .endFill();
-                    }
+                    
+                    if (cell.color != CellColor.Light)
+                        color = CellColor.DarkAvailable;
+                    else
+                        color = CellColor.LightAvailable;
                 }
                 else if (cell.isSelected) {
-                    if (PIXI.utils.isWebGLSupported()) {
-                        cell.graphics.tint = CellColor.Selected;
-                    }
-                    else {
-                        cell.graphics.clear()
-                            .beginFill(CellColor.Selected)
-                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
-                            .endFill();
-                    }
+                    color = CellColor.Selected;
                 }
                 else if (cell.isHighlighted) {
-                    if (PIXI.utils.isWebGLSupported()) {
-                        if (cell.color != CellColor.Light)
-                            cell.graphics.tint = CellColor.DarkHighlight;
-                        else
-                            cell.graphics.tint = CellColor.LightHighlight;
-                    }
-                    else {
-                        let color;
 
-                        if (cell.color != CellColor.Light)
-                            color = CellColor.DarkHighlight;
-                        else
-                            color = CellColor.LightHighlight;
-                        
-                        cell.graphics.clear()
-                            .beginFill(color)
-                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
-                            .endFill();
-                    }
+                    if (cell.color != CellColor.Light)
+                        color = CellColor.DarkHighlight;
+                    else
+                        color = CellColor.LightHighlight;
                 }
                 else {
-                    if (PIXI.utils.isWebGLSupported()) {
-                        cell.graphics.tint = cell.color;
-                    }
-                    else {
-                        cell.graphics.clear()
-                            .beginFill(cell.color)
-                                .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
-                            .endFill();
-                    }
+                    color = cell.color;
                 }
+
+                cell.graphics.clear()
+                    .beginFill(color)
+                        .drawRect(0, 0, CELL_WIDTH, CELL_HEIGHT)
+                    .endFill();
             }
         }
     }
