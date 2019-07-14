@@ -12,6 +12,8 @@ import {
 } from '../server/shared';
 import { Piece } from './piece';
 
+import * as TWEEN from '@tweenjs/tween.js';
+
 const app = new PIXI.Application({
     backgroundColor: 0x2c2c2c,
     width: window.innerWidth,
@@ -252,3 +254,7 @@ function connectToServer() {
 }
 
 initializeGame();
+
+app.ticker.add(function(){
+    TWEEN.update(app.ticker.lastTime);
+});

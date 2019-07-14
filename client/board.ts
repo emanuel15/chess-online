@@ -12,6 +12,7 @@ import {
     CELL_WIDTH,
     CELL_HEIGHT
 } from '../server/shared';
+import * as TWEEN from '@tweenjs/tween.js';
 
 interface CheckInfo {
     available: number[][];
@@ -686,50 +687,79 @@ export class Board extends PIXI.Sprite {
 
         this.clearHighlightedCells();
 
-        if (move.isKingSideCastle) {
-            if (this.color == Color.Black) {
-                let leftRook = this.getPieceIn(0, 0);
-                if (leftRook && leftRook.kind == PieceKind.Rook && !leftRook.hasMoved) {
-                    let king = this.pieces.white.king;
-                    this.cells[leftRook.row][leftRook.col].piece = null;
-                    this.cells[leftRook.row][leftRook.col].isSelected = null;
-                    this.cells[king.row][king.col].piece = null;
-                    this.cells[king.row][king.col].isSelected = null;
+        if (move.isKingSideCastle || move.isQueenSideCastle) {
+            let rookRow = 0;
+            let rookCol = 0;
+            let newRookCol = 0;
+            let newKingCol = 0;
+            let king = this.pieces[this.enemyColor].king;
 
-                    this.setCellHighlighted(leftRook.row, leftRook.col, true);
-                    this.setCellHighlighted(0, 2, true);
-
-                    this.setCellHighlighted(king.row, king.col, true);
-                    this.setCellHighlighted(0, 1, true);
-
-                    leftRook.hasMoved =  true;
-                    king.hasMoved = true;
-
-                    this.setPieceIn(0, 2, leftRook);
-                    this.setPieceIn(0, 1, king);
+            if (move.isKingSideCastle) {
+                if (this.color == Color.Black) {
+                    // left rook
+                    newKingCol = 1;
+                    newRookCol = 2;
+                }
+                else {
+                    // right rook
+                    rookCol = 7;
+                    newRookCol = 5;
+                    newKingCol = 6;
                 }
             }
-            else {
-                let rightRook = this.getPieceIn(0, 7);
-                if (rightRook && rightRook.kind == PieceKind.Rook && !rightRook.hasMoved) {
-                    let king = this.pieces.black.king;
-                    this.cells[rightRook.row][rightRook.col].piece = null;
-                    this.cells[rightRook.row][rightRook.col].isSelected = null;
-                    this.cells[king.row][king.col].piece = null;
-                    this.cells[king.row][king.col].isSelected = null;
-
-                    this.setCellHighlighted(rightRook.row, rightRook.col, true);
-                    this.setCellHighlighted(0, 5, true);
-
-                    this.setCellHighlighted(king.row, king.col, true);
-                    this.setCellHighlighted(0, 6, true);
-
-                    rightRook.hasMoved =  true;
-                    king.hasMoved = true;
-
-                    this.setPieceIn(0, 5, rightRook);
-                    this.setPieceIn(0, 6, king);
+            else if (move.isQueenSideCastle) {
+                if (this.color == Color.Black) {
+                    // right rook
+                    rookCol = 7;
+                    newKingCol = 4;
+                    newRookCol = 5;
                 }
+                else {
+                    // left rook
+                    newRookCol = 3;
+                    newKingCol = 2;
+                }
+            }
+
+            let rook = this.getPieceIn(rookRow, rookCol);
+            if (rook && rook.kind == PieceKind.Rook && !rook.hasMoved) {
+                this.cells[rook.row][rook.col].piece = null;
+                this.cells[rook.row][rook.col].isSelected = null;
+                this.cells[king.row][king.col].piece = null;
+                this.cells[king.row][king.col].isSelected = null;
+
+                this.setCellHighlighted(rook.row, rook.col, true);
+                this.setCellHighlighted(rookRow, newRookCol, true);
+
+                this.setCellHighlighted(king.row, king.col, true);
+                this.setCellHighlighted(rookRow, newKingCol, true);
+
+                let tweenKing = new TWEEN.Tween(king);
+                let tweenRook = new TWEEN.Tween(rook);
+
+                tweenRook
+                    .to({ x: CELL_WIDTH / 2 + newRookCol * CELL_WIDTH, y: CELL_HEIGHT / 2 + rookRow * CELL_HEIGHT }, 100)
+                    .easing(TWEEN.Easing.Linear.None)
+                    .onComplete(() => {
+                        this.setPieceIn(rookRow, newRookCol, rook);
+                        TWEEN.remove(tweenKing);
+                        TWEEN.remove(tweenRook);
+                    });
+                
+                tweenKing
+                    .to({ x: CELL_WIDTH / 2 + newKingCol * CELL_WIDTH, y: CELL_HEIGHT / 2 + rookRow * CELL_HEIGHT }, 100)
+                    .easing(TWEEN.Easing.Linear.None)
+                    .onComplete(() => {
+                        this.setPieceIn(rookRow, newKingCol, king);
+                    })
+                    .chain(tweenRook)
+                    .start();
+                
+                this.setPieceIn(rookRow, newRookCol, rook, false);
+                this.setPieceIn(rookRow, newKingCol, king, false);
+                
+                rook.hasMoved =  true;
+                king.hasMoved = true;
             }
 
             this.redrawBoard();
@@ -744,66 +774,7 @@ export class Board extends PIXI.Sprite {
                 this.setActionsEnabled(false);
                 this.emit('checkmate');
             }
-            return;
-        }
-        else if (move.isQueenSideCastle) {
-            if (this.color == Color.Black) {
-                let rightRook = this.getPieceIn(0, 7);
-                if (rightRook && rightRook.kind == PieceKind.Rook && !rightRook.hasMoved) {
-                    let king = this.pieces.white.king;
-                    this.cells[rightRook.row][rightRook.col].piece = null;
-                    this.cells[rightRook.row][rightRook.col].isSelected = null;
-                    this.cells[king.row][king.col].piece = null;
-                    this.cells[king.row][king.col].isSelected = null;
 
-                    this.setCellHighlighted(rightRook.row, rightRook.col, true);
-                    this.setCellHighlighted(0, 4, true);
-
-                    this.setCellHighlighted(king.row, king.col, true);
-                    this.setCellHighlighted(0, 5, true);
-                    
-                    rightRook.hasMoved =  true;
-                    king.hasMoved = true;
-
-                    this.setPieceIn(0, 4, rightRook);
-                    this.setPieceIn(0, 5, king);
-                }
-            }
-            else {
-                let leftRook = this.getPieceIn(0, 0);
-                if (leftRook && leftRook.kind == PieceKind.Rook && !leftRook.hasMoved) {
-                    let king = this.pieces.black.king;
-                    this.cells[leftRook.row][leftRook.col].piece = null;
-                    this.cells[leftRook.row][leftRook.col].isSelected = null;
-                    this.cells[king.row][king.col].piece = null;
-                    this.cells[king.row][king.col].isSelected = null;
-
-                    this.setCellHighlighted(leftRook.row, leftRook.col, true);
-                    this.setCellHighlighted(0, 3, true);
-
-                    this.setCellHighlighted(king.row, king.col, true);
-                    this.setCellHighlighted(0, 2, true);
-
-                    leftRook.hasMoved =  true;
-                    king.hasMoved = true;
-
-                    this.setPieceIn(0, 3, leftRook);
-                    this.setPieceIn(0, 2, king);
-                }
-            }
-
-            this.redrawBoard();
-
-            if (move.isCheck) {
-                let checkInfo = this.verifyCheck(this.color);
-
-                this.enableAllowedPieces();
-                this.emit('check');
-            }
-            else if (move.isCheckmate) {
-                this.setActionsEnabled(false);
-                this.emit('checkmate');
-            }
             return;
         }
 
@@ -886,14 +857,16 @@ export class Board extends PIXI.Sprite {
         return null;
     }
 
-    setPieceIn(row: number, col: number, piece: Piece) {
+    setPieceIn(row: number, col: number, piece: Piece, immediate: boolean = true) {
         if (piece) {
-            piece.x = CELL_WIDTH / 2 + col * CELL_WIDTH;
-            piece.y = CELL_HEIGHT / 2 + row * CELL_HEIGHT;
+            piece.row = row;
+            piece.col = col;
+            if (immediate) {
+                piece.x = CELL_WIDTH / 2 + col * CELL_WIDTH;
+                piece.y = CELL_HEIGHT / 2 + row * CELL_HEIGHT;
+            }
         }
         this.cells[row][col].piece = piece;
-        piece.row = row;
-        piece.col = col;
     }
 
     setCellAttacked(row: number, col: number, attacked: boolean = true) {
@@ -1020,9 +993,21 @@ export class Board extends PIXI.Sprite {
                     }
                 }
 
+                let tween = new TWEEN.Tween(piece);
+
+                tween
+                    .to({ x: CELL_WIDTH / 2 + col * CELL_WIDTH, y: CELL_HEIGHT / 2 + row * CELL_HEIGHT }, 100)
+                    .easing(TWEEN.Easing.Linear.None)
+                    .onComplete(() => {
+                        this.setPieceIn(row, col, piece);
+                        TWEEN.remove(tween);
+                    })
+                    .start();
+
                 this.cells[oldRow][oldCol].isSelected = false;
                 this.cells[oldRow][oldCol].piece = null;
-                this.setPieceIn(row, col, piece);
+                
+                this.setPieceIn(row, col, piece, false);
 
                 this.clearAvailableCells();
                 this.clearAttackedCells();

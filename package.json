@@ -24,8 +24,10 @@
     "webpack-dev-server": "^3.7.2"
   },
   "dependencies": {
+    "@tweenjs/tween.js": "^17.4.0",
     "@types/express": "^4.17.0",
     "@types/pixi.js": "^4.8.8",
+    "@types/tween.js": "^17.2.0",
     "@types/uuid": "^3.4.5",
     "@types/ws": "^6.0.1",
     "express": "^4.17.1",
